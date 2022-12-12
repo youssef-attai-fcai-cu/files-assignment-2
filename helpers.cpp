@@ -23,8 +23,11 @@ bool isLeaf(int recordIndex, int recordSize, std::fstream &btree) {
     return std::stoi(std::string(leaf)) == 0;
 }
 
-bool isEmpty(int recordIndex, std::fstream &btree) {
-    return false;
+bool isEmpty(int recordIndex, int recordSize, std::fstream &btree) {
+    btree.seekg(recordIndex * recordSize);
+    char leaf[CELL_SIZE];
+    btree.read(leaf, CELL_SIZE);
+    return std::stoi(std::string(leaf)) == -1;
 }
 
 void closeBTree(std::fstream &btree) {

@@ -7,7 +7,7 @@
 bool isLeaf(int recordIndex, int recordSize, std::fstream &btree);
 
 //  Returns true if the record at index recordIndex is an empty record
-bool isEmpty(int recordIndex, std::fstream &btree);
+bool isEmpty(int recordIndex, int recordSize, std::fstream &btree);
 
 //  Reads the value in the second cell of the B-tree's header
 //  i.e. the index of the next empty record
