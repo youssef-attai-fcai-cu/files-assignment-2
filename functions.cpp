@@ -92,7 +92,7 @@ int InsertNewRecordAtIndex(char *filename, int RecordID, int Reference) {
                 if (k == -1 && r == -1) break;
 
                 currentRecordIndex = r;
-                
+
 //              Update visited cells
                 visited.push((int) btree.tellg() - (2 * CELL_SIZE));
 
@@ -105,14 +105,19 @@ int InsertNewRecordAtIndex(char *filename, int RecordID, int Reference) {
 //      Read node into memory
         std::vector<std::pair<int, int>> node = readNode(currentRecordIndex, recordSize, m, btree);
 
-//      Insert into node
-        node.emplace_back(std::make_pair(RecordID, Reference));
+        if (node.size() < m) {
+//          Insert into node
+            node.emplace_back(std::make_pair(RecordID, Reference));
 
-//      Sort node on pair.first
-        std::sort(node.begin(), node.end());
+//          Sort node on pair.first
+            std::sort(node.begin(), node.end());
 
-//      Write node
-        writeNode(node, currentRecordIndex, recordSize, btree);
+//          Write node
+            writeNode(node, currentRecordIndex, recordSize, btree);
+        } else {
+//          
+        }
+
 
 //      Update visited parents
         while (!visited.empty()) {
@@ -149,11 +154,13 @@ int InsertNewRecordAtIndex(char *filename, int RecordID, int Reference) {
              // There is at least 1 empty record
              If (Next empty cell value != -1) {
                                         // At least 2 empty records
-                 If (Parent is full AND number of empty records > 1) Split parent
-                 Otherwise Abort
-                 Split node
-                 Insert new pair <RecordID, Reference>
-                 Adjust parent (i.e. insert new pair in parent)
+                If (Parent is full AND number of empty records > 1) Split parent
+                Otherwise Abort
+                Split node
+                Insert new pair <RecordID, Reference>
+                Sort node
+                Write node
+                Adjust parent (i.e. insert new pair in parent)
              } Otherwise Abort
          }
      }
