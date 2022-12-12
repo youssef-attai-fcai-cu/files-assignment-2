@@ -10,7 +10,7 @@ void CreateIndexFileFile(char *filename, int numberOfRecords, int m) {
 
 //  Open the B-tree file
     std::fstream btree;
-    openBTree(btree, filename);
+    openBTree(filename, btree);
 
 //  For each record
     for (int i = 0; i < numberOfRecords; ++i) {
@@ -27,6 +27,9 @@ void CreateIndexFileFile(char *filename, int numberOfRecords, int m) {
         for (int j = 0; j < (2 * m) - 1; ++j)
             btree << pad("-1", CELL_SIZE);
     }
+
+//  Close B-tree file
+    closeBTree(btree);
 }
 
 int InsertNewRecordAtIndex(char *filename, int RecordID, int Reference) {
@@ -38,7 +41,7 @@ void DeleteRecordFromIndex(char *filename, int RecordID) {
 }
 
 void DisplayIndexFileContent(char *filename) {
-
+    
 }
 
 int SearchARecord(char *filename, int RecordID) {
