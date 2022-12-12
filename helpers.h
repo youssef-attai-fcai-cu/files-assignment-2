@@ -3,6 +3,9 @@
 
 #include <fstream>
 
+//  Get the size of a file
+std::streamoff getFileSize(std::fstream &btree);
+
 //  Returns true if the record at index recordIndex represents a leaf node
 bool isLeaf(int recordIndex, int recordSize, std::fstream &btree);
 

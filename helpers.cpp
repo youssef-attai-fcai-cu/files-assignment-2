@@ -30,6 +30,11 @@ bool isEmpty(int recordIndex, int recordSize, std::fstream &btree) {
     return std::stoi(std::string(leaf)) == -1;
 }
 
+std::streamoff getFileSize(std::fstream &btree) {
+    btree.seekg(0, std::ios::end);
+    return btree.tellg();
+}
+
 void closeBTree(std::fstream &btree) {
     btree.close();
 }
