@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "helpers.h"
 #include <iostream>
+#include <vector>
 
 void CreateIndexFileFile(char *filename, int numberOfRecords, int m) {
 //  Record size
@@ -38,33 +39,49 @@ int InsertNewRecordAtIndex(char *filename, int RecordID, int Reference) {
 //  Open the B-tree file
     std::fstream btree;
     openBTree(filename, btree);
-    
-    
+
+//  Seek to the beginning of the file
+    btree.seekg(0, std::ios::beg);
+
 //  TODO: Insertion logic
 
-/*
-    Check root
-    If (root is empty) Insert in root
-    Otherwise {
-        While (current node is non-leaf) Traverse the B-tree
-        Read node in memory
-        If (Node is not full) {
-            Insert new pair <RecordID, Reference>
-            Sort node
-            Write node
-        } Otherwise {
-            // There is at least 1 empty record
-            If (Next empty cell value != -1) {
-                                       // At least 2 empty records
-                If (Parent is full AND number of empty records > 1) Split parent
-                Otherwise Abort
-                Split node
-                Insert new pair <RecordID, Reference>
-                Adjust parent (i.e. insert new pair in parent)
-            } Otherwise Abort
-        }
+    int nextEmpty = getIndexOfNextEmptyRecord(btree);
+
+//  If root is empty
+    if (nextEmpty == 1) {
+//      Insert in root
+
+//      Read node into memory
+        std::vector<std::pair<int, int>> node = readNode(nextEmpty, recordSize, btree);
+//      Insert into node
+//      Write node
+    } else {
+//      Traverse B-tree
     }
-*/
+
+/*
+     Check root
+     If (root is empty) Insert in root
+     Otherwise {
+         While (current node is non-leaf) Traverse the B-tree
+         Read node in memory
+         If (Node is not full) {
+             Insert new pair <RecordID, Reference>
+             Sort node
+             Write node
+         } Otherwise {
+             // There is at least 1 empty record
+             If (Next empty cell value != -1) {
+                                        // At least 2 empty records
+                 If (Parent is full AND number of empty records > 1) Split parent
+                 Otherwise Abort
+                 Split node
+                 Insert new pair <RecordID, Reference>
+                 Adjust parent (i.e. insert new pair in parent)
+             } Otherwise Abort
+         }
+     }
+ */
 
 
 //  Close B-tree file
@@ -89,7 +106,7 @@ void DisplayIndexFileContent(char *filename) {
 
 //  Seek to the beginning of the file
     btree.seekg(0, std::ios::beg);
-    
+
 //  For each record
     for (int j = 0; j < numberOfRecords; ++j) {
 //      Read the record
@@ -98,11 +115,11 @@ void DisplayIndexFileContent(char *filename) {
 
 //      Instead of printing the array of characters, print each character one by one
 //      to avoid weird null-terminator issue
-        for (char i : record)
+        for (char i: record)
             std::cout << i;
         std::cout << '\n';
     }
-        
+
 //  Close B-tree file
     closeBTree(btree);
 }
