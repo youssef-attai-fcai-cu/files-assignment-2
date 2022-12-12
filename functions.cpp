@@ -1,7 +1,6 @@
 #include "functions.h"
 #include "constants.h"
 #include "helpers.h"
-#include <fstream>
 #include <iostream>
 
 void CreateIndexFileFile(char *filename, int numberOfRecords, int m) {
@@ -33,6 +32,43 @@ void CreateIndexFileFile(char *filename, int numberOfRecords, int m) {
 }
 
 int InsertNewRecordAtIndex(char *filename, int RecordID, int Reference) {
+//  Record size
+    const int recordSize = (CELL_SIZE * ((2 * 5) + 1)); // TODO: Replace "5" with m
+
+//  Open the B-tree file
+    std::fstream btree;
+    openBTree(filename, btree);
+    
+    
+//  TODO: Insertion logic
+
+/*
+    Check root
+    If (root is empty) Insert in root
+    Otherwise {
+        While (current node is non-leaf) Traverse the B-tree
+        Read node in memory
+        If (Node is not full) {
+            Insert new pair <RecordID, Reference>
+            Sort node
+            Write node
+        } Otherwise {
+            // There is at least 1 empty record
+            If (Next empty cell value != -1) {
+                                       // At least 2 empty records
+                If (Parent is full AND number of empty records > 1) Split parent
+                Otherwise Abort
+                Split node
+                Insert new pair <RecordID, Reference>
+                Adjust parent (i.e. insert new pair in parent)
+            } Otherwise Abort
+        }
+    }
+*/
+
+
+//  Close B-tree file
+    closeBTree(btree);
     return 0;
 }
 
