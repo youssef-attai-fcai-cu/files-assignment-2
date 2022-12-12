@@ -27,6 +27,12 @@ void closeBTree(std::fstream &btree);
 std::string pad(const std::string &s, int n);
 
 //  Read the record at nodeIndex and return it as vector of pairs
-std::vector<std::pair<int, int>> readNode(int nodeIndex, int recordSize, std::fstream &btree);
+std::vector<std::pair<int, int>> readNode(int nodeIndex, int recordSize, int m, std::fstream &btree);
+
+//  Write node at index nodeIndex
+void writeNode(const std::vector<std::pair<int, int>>& node, int nodeIndex, int recordSize, std::fstream &btree);
+
+//  Converts a character array c into an integer
+int ctoi(char c[]);
 
 #endif //ASSIGNMENT_2_HELPERS_H
