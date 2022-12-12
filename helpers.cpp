@@ -38,3 +38,19 @@ std::streamoff getFileSize(std::fstream &btree) {
 void closeBTree(std::fstream &btree) {
     btree.close();
 }
+
+int getIndexOfNextEmptyRecord(std::fstream &btree) {
+    btree.seekg(CELL_SIZE, std::ios::beg);
+    char nextEmpty[CELL_SIZE];
+    btree.read(nextEmpty, CELL_SIZE);
+    return std::stoi(std::string(nextEmpty));
+}
+
+std::vector<std::pair<int, int>> readNode(int nodeIndex, int recordSize, std::fstream &btree) {
+    std::vector<std::pair<int, int>> node;
+    btree.seekg(nodeIndex * recordSize);
+    
+//  TODO: Node read logic
+    
+    return node;
+}
