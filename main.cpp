@@ -1,20 +1,13 @@
-#include "functions.h"
-
+#include "BTree.h"
 
 int main() {
-    char BTREE_FILENAME[] = "../btree";
-
-//    CreateIndexFileFile(BTREE_FILENAME, 10, 5);
-//    
-//    InsertNewRecordAtIndex(BTREE_FILENAME, 3, 12);
-//    InsertNewRecordAtIndex(BTREE_FILENAME, 7, 24);
-//    InsertNewRecordAtIndex(BTREE_FILENAME, 10, 48);
-//    InsertNewRecordAtIndex(BTREE_FILENAME, 24, 60);
-//    InsertNewRecordAtIndex(BTREE_FILENAME, 14, 72);
-    
-    InsertNewRecordAtIndex(BTREE_FILENAME, 33, 13);
-    
-    DisplayIndexFileContent(BTREE_FILENAME);
+    BTree btree("../btree", 10, 5, 4);
+    btree.insertRecord(3, 12);
+    btree.insertRecord(7, 24);
+    btree.insertRecord(10, 48);
+    btree.insertRecord(24, 60);
+    btree.insertRecord(14, 72);
+    btree.displayFile();
 
     return 0;
 }
