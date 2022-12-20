@@ -84,6 +84,14 @@ private:
 
 //  Write node record at the given index
     void writeNode(const std::vector<std::pair<int, int>> &node, int recordIndex);
+
+    bool rootIsEmpty();
+
+    void markAsLeaf(int recordIndex);
+
+    void writePair(int recordIndex, int pairIndex, int recordID, int reference);
+
+    void getNextEmpty(int recordIndex);
 };
 
 
