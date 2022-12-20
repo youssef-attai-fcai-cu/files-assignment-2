@@ -54,13 +54,11 @@ int BTree::insertRecord(int recordID, int reference) {
         file.seekg(recordSize(), std::ios::beg); //  Seek to root (skip header)
         std::stack<int> visited; //  Keep track of visited cells
 
-//      Keep track of visited cells
-        std::stack<int> visited;
-
-//      Traverse till a leaf is reached
+//      Traverse records till a leaf is reached record
 //      starting from root (i.e. Record at index 1)
         int currentRecordIndex = 1;
         while (!isLeaf(currentRecordIndex)) {
+//          For each pair of cells in the current record
             for (int i = 0; i < m; ++i) {
                 char key[cellSize], val[cellSize];
                 file.read(key, cellSize);
