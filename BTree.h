@@ -26,7 +26,7 @@ public:
 
     void deleteRecord(int recordID);
 
-    int findRecord(int recordID);
+    int findRecord(int recordID) const;
 
     int recordSize() const { return (cellSize * ((2 * m) + 1)); }
 
