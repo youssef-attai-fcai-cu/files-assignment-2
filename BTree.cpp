@@ -201,7 +201,7 @@ std::vector<std::pair<int, int>> BTree::readNode(int recordIndex) {
         if (k == -1 && v == -1) break;
 
 //      Append pair to node vector
-        node.emplace_back(std::make_pair(k, v));
+        node.emplace_back(k, v);
     }
 
     return node;
