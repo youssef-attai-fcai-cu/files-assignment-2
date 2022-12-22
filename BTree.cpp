@@ -68,6 +68,7 @@ int BTree::insertRecord(int recordID, int reference) {
         visited.push(currentRecordIndex);
 
         while (!isLeaf(currentRecordIndex)) {
+            bool found = false;
             for (int i = 0; i < m; ++i) {
                 char key[cellSize], val[cellSize];
                 file.read(key, cellSize);
@@ -77,49 +78,48 @@ int BTree::insertRecord(int recordID, int reference) {
                 if (k == -1 && v == -1) break;
                 currentRecordIndex = v;
                 if (recordID < k) {
-                    visited.push(currentRecordIndex);
+                    found = true;
                     break;
                 }
             }
+            visited.push(currentRecordIndex);
+            if (found) break;
         }
 
         std::vector<std::pair<int, int>> node = readNode(currentRecordIndex);
         node.emplace_back(recordID, reference);
-
+//      If overflowed, Split
         if (node.size() > m) {
-//          Split
+//          If root
             if (currentRecordIndex == 1) {
 //              Split root, no update in parent nodes
                 if (splitRoot(std::make_pair(recordID, reference))) return 1;
                 else return -1;
             } else {
 //              insert in full node, UPDATE parent nodes
-                std::vector<int> newNodesIndexes = splitNode(currentRecordIndex);
+                int newNodeIndex = splitNode(currentRecordIndex, node);
                 visited.pop(); // Remove currentRecordIndex
 
 //              Update parent nodes
                 while (!visited.empty()) {
 //                  If no nodes were allocated from last split
-                    if (newNodesIndexes.empty()) return -1; // then the B-tree file has no space, insertion failed
+                    if (newNodeIndex == -1) return -1; // then the B-tree file has no space, insertion failed
 
 //                  Get the latest visited parent cell
                     int lastVisitedIndex = visited.top();
                     visited.pop();
 
-//                  Rewrite last visited with the newNodesIndexes
+//                  Rewrite last visited with the newNodeIndex
                     std::vector<std::pair<int, int>> lastVisited;
-                    for (auto nodeIndex: newNodesIndexes)
-                        lastVisited.emplace_back(getMaxPair(nodeIndex).first, nodeIndex);
-                    std::sort(lastVisited.begin(), lastVisited.end());
 
-//                  If node at lastVisited does not have enough space
-                    if (lastVisited.size() > m) {
-//                      Split node at lastVisitedIndex
-                        newNodesIndexes = splitNode(lastVisitedIndex);
-                    } else {
-//                      Stop traversal, no more updating is needed
-                        writeNode(lastVisited, lastVisitedIndex);
-                    }
+                    // Add max in child nodes
+                    for (auto nodeIndex: childrenIndexes(lastVisitedIndex))
+                        lastVisited.emplace_back(getMaxPair(nodeIndex).first, nodeIndex);
+
+                    lastVisited.emplace_back(getMaxPair(newNodeIndex).first, newNodeIndex); // Add max in new node
+
+                    std::sort(lastVisited.begin(), lastVisited.end());
+                    writeNode(lastVisited, lastVisitedIndex);
                 }
             }
         } else {
@@ -133,11 +133,10 @@ int BTree::insertRecord(int recordID, int reference) {
                 int lastVisitedIndex = visited.top();
                 visited.pop();
 
-//              Rewrite last visited with the newNodesIndexes
+//              Rewrite last visited with the childrenIndexes
                 std::vector<std::pair<int, int>> lastVisited;
                 for (auto nodeIndex: childrenIndexes(lastVisitedIndex))
                     lastVisited.emplace_back(getMaxPair(nodeIndex).first, nodeIndex);
-
                 std::sort(lastVisited.begin(), lastVisited.end());
                 writeNode(lastVisited, lastVisitedIndex);
             }
@@ -241,14 +240,11 @@ void BTree::markAsNonLeaf(int recordIndex) {
     file << pad("1", cellSize);
 }
 
-std::vector<int> BTree::splitNode(int recordIndex) {
-    std::vector<int> newNodesIndexes; // to be returned
-
-    std::vector<std::pair<int, int>> originalNode = readNode(recordIndex);
+int BTree::splitNode(int recordIndex, std::vector<std::pair<int, int>> originalNode) {
     std::sort(originalNode.begin(), originalNode.end()); // TODO: Revise (probably useless)
 
     int nodeIndex = nextEmpty(); //  Get the index for the new node
-    if (nodeIndex == -1) return {};
+    if (nodeIndex == -1) return -1;
 
 //    TODO: Move padding into a separate function
     int newNextEmptyInHeader = nextEmpty(nodeIndex);
@@ -279,16 +275,13 @@ std::vector<int> BTree::splitNode(int recordIndex) {
 
 //  Write firstNode onto originalNode
     writeNode(firstNode, recordIndex);
-    markAsLeaf(recordIndex); //  Update node's leaf status to LEAF
+    markAsLeaf(recordIndex); //  Update originalNode's leaf status to LEAF
 
-//  Write second node
+//  Write second originalNode
     writeNode(secondNode, nodeIndex);
-    markAsLeaf(nodeIndex); //  Update node's leaf status to LEAF
+    markAsLeaf(nodeIndex); //  Update originalNode's leaf status to LEAF
 
-    newNodesIndexes.push_back(recordIndex);
-    newNodesIndexes.push_back(nodeIndex);
-
-    return newNodesIndexes;
+    return nodeIndex;
 }
 
 bool BTree::splitRoot(std::pair<int, int> newPair) {

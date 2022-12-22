@@ -116,7 +116,7 @@ private:
 
     void markAsNonLeaf(int recordIndex);
 
-    std::vector<int> splitNode(int recordIndex);
+    int splitNode(int recordIndex, std::vector<std::pair<int, int>> originalNode);
     
     std::pair<int, int> getMaxPair(int recordIndex);
     
