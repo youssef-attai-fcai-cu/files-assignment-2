@@ -62,27 +62,29 @@ int BTree::insertRecord(int recordID, int reference) {
 //      Traverse records till a leaf is reached record
 //      starting from root (i.e. Record at index 1)
         int currentRecordIndex = 1;
+        
         while (!isLeaf(currentRecordIndex)) {
-            currentRecordIndex++;
+            
         }
+        
+        std::vector<std::pair<int, int>> node = readNode(currentRecordIndex);
+        node.emplace_back(recordID, reference);
+        std::sort(node.begin(), node.end());
+        writeNode(node, 1);
+        
+//      TODO: REMOVE BELOW
+        
 //      Check if root is leaf
         if (isLeaf(1)) {
 //          Insert (possibly split)
-            std::vector<std::pair<int, int>> node = readNode(1);
 
 //          If node is full
             if (node.size() == m) {
 //              Split
                 splitRoot(std::make_pair(recordID, reference));
             } else {
-                node.emplace_back(recordID, reference);
-                std::sort(node.begin(), node.end());
-                writeNode(node, 1);
+               
             }
-        } else { // root is non-lead
-//          Traverse
-            int currentRecordIndex = 1;
-
         }
     }
 
