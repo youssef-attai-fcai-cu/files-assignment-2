@@ -59,32 +59,36 @@ int BTree::insertRecord(int recordID, int reference) {
         markAsLeaf(1); //  Update root's leaf status to LEAF
     } else {  //  Otherwise, if root is NOT empty
 
+        std::stack<int> visited;
+        visited.push(1);
+        
 //      Traverse records till a leaf is reached record
 //      starting from root (i.e. Record at index 1)
         int currentRecordIndex = 1;
-        
         while (!isLeaf(currentRecordIndex)) {
-            
+            for (int i = 0; i < m; ++i) {
+                char key[cellSize], val[cellSize];
+                file.read(key, cellSize);
+                file.read(val, cellSize);
+                int k = ctoi(key);
+                int v = ctoi(val);
+                if (k == -1 && v == -1) break;
+                currentRecordIndex = v;
+                visited.push(currentRecordIndex);
+                if (recordID < k) break;
+            }
         }
         
         std::vector<std::pair<int, int>> node = readNode(currentRecordIndex);
-        node.emplace_back(recordID, reference);
-        std::sort(node.begin(), node.end());
-        writeNode(node, 1);
-        
-//      TODO: REMOVE BELOW
-        
-//      Check if root is leaf
-        if (isLeaf(1)) {
-//          Insert (possibly split)
+        if (node.size() == m) {
+//          Split
 
-//          If node is full
-            if (node.size() == m) {
-//              Split
-                splitRoot(std::make_pair(recordID, reference));
-            } else {
-               
-            }
+
+            splitNode(currentRecordIndex, std::make_pair(recordID, reference));
+        } else {
+            node.emplace_back(recordID, reference);
+            std::sort(node.begin(), node.end());
+            writeNode(node, 1);
         }
     }
 
