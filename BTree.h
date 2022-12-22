@@ -125,7 +125,7 @@ private:
 
     void markAsNonLeaf(int recordIndex);
 
-    void splitNode(int recordIndex, std::pair<int, int> newPair);
+    std::vector<int> splitNode(int recordIndex);
 
     bool splitRoot(std::pair<int, int> newPair);
 
