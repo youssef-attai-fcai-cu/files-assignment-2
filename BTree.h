@@ -122,7 +122,7 @@ private:
     
     std::vector<int> childrenIndexes(int recordIndex);
 
-    bool splitRoot(std::pair<int, int> newPair);
+    bool splitRoot(std::vector<std::pair<int, int>> root);
 
     void clearRecord(int recordIndex);
 };

@@ -89,14 +89,27 @@ int BTree::insertRecord(int recordID, int reference) {
             if (found) break;
         }
 
-        std::vector<std::pair<int, int>> node = readNode(currentRecordIndex);
-        node.emplace_back(recordID, reference);
+        std::vector<std::pair<int, int>> lastVisited = readNode(currentRecordIndex);
+        lastVisited.emplace_back(recordID, reference);
+        std::sort(lastVisited.begin(), lastVisited.end());
 
         while (!visited.empty()) {
-            int lastVisitedIndex = visited.top();
+            int lastVisitedIndex = visited.top(); // first time = currentRecordIndex
             visited.pop();
-            
-            
+
+//          Overflow
+            if (lastVisited.size() > m) {
+//              If root
+                if (lastVisitedIndex == 1) {
+//                  Split root, no update in parent nodes
+                    if (splitRoot(lastVisited)) return 1; // Successfully inserted lastVisited
+                    else return -1; // No space, so no insertion
+                }
+                int newNodeIndex = splitNode(lastVisitedIndex, lastVisited);
+                
+            } else {
+//                no overflow, normal insertion
+            }
         }
     }
 }
@@ -195,8 +208,6 @@ void BTree::markAsNonLeaf(int recordIndex) {
 }
 
 int BTree::splitNode(int recordIndex, std::vector<std::pair<int, int>> originalNode) {
-    std::sort(originalNode.begin(), originalNode.end()); // TODO: Revise (probably useless)
-
     int nodeIndex = nextEmpty(); //  Get the index for the new node
     if (nodeIndex == -1) return -1;
 
@@ -238,13 +249,7 @@ int BTree::splitNode(int recordIndex, std::vector<std::pair<int, int>> originalN
     return nodeIndex;
 }
 
-bool BTree::splitRoot(std::pair<int, int> newPair) {
-//  Read root
-    std::vector<std::pair<int, int>> root = readNode(1);
-    root.emplace_back(newPair);
-
-    std::sort(root.begin(), root.end());
-
+bool BTree::splitRoot(std::vector<std::pair<int, int>> root) {
 //  Find 2 empty records for the new nodes
     int firstNodeIndex = nextEmpty(); //  Get the first empty node
     if (firstNodeIndex == -1) return false;
