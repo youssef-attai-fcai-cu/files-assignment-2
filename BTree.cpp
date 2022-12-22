@@ -75,7 +75,10 @@ int BTree::insertRecord(int recordID, int reference) {
                 file.read(val, cellSize);
                 int k = ctoi(key);
                 int v = ctoi(val);
-                if (k == -1 && v == -1) break;
+                if (k == -1 && v == -1) {
+                    found = true;
+                    break;
+                }
                 currentRecordIndex = v;
                 if (recordID < k) {
                     found = true;
@@ -88,9 +91,14 @@ int BTree::insertRecord(int recordID, int reference) {
 
         std::vector<std::pair<int, int>> node = readNode(currentRecordIndex);
         node.emplace_back(recordID, reference);
-        
+
+        while (!visited.empty()) {
+            int lastVisitedIndex = visited.top();
+            visited.pop();
+            
+            
+        }
     }
-    return 0;
 }
 
 void BTree::markAsLeaf(int recordIndex) {
