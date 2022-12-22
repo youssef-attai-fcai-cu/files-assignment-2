@@ -22,20 +22,22 @@ BTree::~BTree() {
 
 void BTree::createFile() {
 //  For each record
-    for (int i = 0; i < numberOfRecords; ++i) {
+    for (int i = 0; i < numberOfRecords; ++i) clearRecord(i);
+}
+
+void BTree::clearRecord(int recordIndex) {
 //      Seek to the beginning of the record
-        file.seekg(i * recordSize());
+    file.seekg(recordIndex * recordSize());
 
 //      Add the leaf status cell
 //      -1 means it is neither leaf nor non-leaf, it is an empty record
-        file << pad("-1", cellSize);
+    file << pad("-1", cellSize);
 
 //      Add index of the next empty cell
-        file << pad(std::to_string(i + 1), cellSize);
+    file << pad(std::to_string(recordIndex + 1), cellSize);
 
 //      Fill the rest of the record cells with -1
-        for (int j = 0; j < (2 * m) - 1; ++j) file << pad("-1", cellSize);
-    }
+    for (int j = 0; j < (2 * m) - 1; ++j) file << pad("-1", cellSize);
 }
 
 int BTree::insertRecord(int recordID, int reference) {
@@ -44,76 +46,36 @@ int BTree::insertRecord(int recordID, int reference) {
 
 //  If root is empty, insert in root
     if (rootIsEmpty()) {
-        getNextEmpty(1); //  The header's next empty cell value = the root's next empty cell value
+        //  The header's next empty cell value = the root's next empty cell value
+        //  Read new next empty from root
+        char newNextEmpty[cellSize];
+        file.seekg((1 * recordSize()) + cellSize, std::ios::beg);
+        file.read(newNextEmpty, cellSize);
+
+        //  Store new next empty in header (update 2nd cell in header)
+        writeCharArray(cellSize, newNextEmpty, cellSize);
+
         writePair(1, 0, recordID, reference); //  Write pair in root node
         markAsLeaf(1); //  Update root's leaf status to LEAF
     } else {  //  Otherwise, if root is NOT empty
+//      Check if root is leaf
+        if (isLeaf(1)) {
+//          Insert (possibly split)
+            std::vector<std::pair<int, int>> node = readNode(1);
 
-        /* Traverse B-tree */
-        
-        file.seekg(recordSize(), std::ios::beg); //  Seek to root (skip header)
-        std::stack<int> visited; //  Keep track of visited cells
-
-//      Traverse records till a leaf is reached record
-//      starting from root (i.e. Record at index 1)
-        int currentRecordIndex = 1;
-        while (!isLeaf(currentRecordIndex)) {
-//          For each pair of cells in the current record
-            for (int i = 0; i < m; ++i) {
-                char key[cellSize], val[cellSize];
-                file.read(key, cellSize);
-                file.read(val, cellSize);
-                int k = ctoi(key);
-                int v = ctoi(val);
-
-                if (k == -1 && v == -1) break;
-
-                currentRecordIndex = v;
-
-//              Update visited cells
-                visited.push((int) file.tellg() - (2 * cellSize));
-
-                if (recordID < k) break;
+//          If node is full
+            if (node.size() == m) {
+//              Split
+                splitRoot(std::make_pair(recordID, reference));
+            } else {
+                node.emplace_back(recordID, reference);
+                std::sort(node.begin(), node.end());
+                writeNode(node, 1);
             }
-        }
+        } else { // root is non-lead
+//          Traverse
+            int currentRecordIndex = 1;
 
-        /* Leaf reached, insert pair in record at currentRecordIndex */
-
-//      Read node into memory
-        std::vector<std::pair<int, int>> node = readNode(currentRecordIndex);
-
-        if (node.size() < m) {
-//          Insert into node
-            node.emplace_back(recordID, reference);
-
-//          Sort node on pair.first
-            std::sort(node.begin(), node.end());
-
-//          Write node
-            writeNode(node, currentRecordIndex);
-        } else {
-//          
-        }
-
-
-//      Update visited parents
-        while (!visited.empty()) {
-//          Get the latest visited parent cell
-            int parentCell = visited.top();
-            visited.pop();
-
-//          Get direct child node to this parent
-            file.seekg(parentCell + cellSize);
-            char childNodeIndex[cellSize];
-            file.read(childNodeIndex, cellSize);
-            node = readNode(ctoi(childNodeIndex));
-
-//          Get maximum pair in the child node
-            std::pair<int, int> maxPair = *std::max_element(node.begin(), node.end());
-
-//          Override new maximum in parent
-            file.seekg(parentCell);
-            file << pad(std::to_string(maxPair.first), cellSize);
         }
     }
 
@@ -121,7 +83,7 @@ int BTree::insertRecord(int recordID, int reference) {
      Check root
      If (root is empty) Insert in root
      Otherwise {
-         While (current node is non-leaf) Traverse the B-tree
+         Insert in current node (root), traverse if non-leaf
          Read node in memory
          If (Node is not full) {
              Insert new pair <RecordID, Reference>
@@ -144,16 +106,6 @@ int BTree::insertRecord(int recordID, int reference) {
  */
 
     return 0;
-}
-
-void BTree::getNextEmpty(int recordIndex) {
-//  Read new next empty from root
-    char newNextEmpty[cellSize];
-    file.seekg((recordIndex * recordSize()) + cellSize, std::ios::beg);
-    file.read(newNextEmpty, cellSize);
-
-//  Store new next empty in header
-    writeCharArray(cellSize, newNextEmpty, cellSize);
 }
 
 void BTree::markAsLeaf(int recordIndex) {
@@ -231,4 +183,98 @@ void BTree::writePair(int recordIndex, int pairIndex, int recordID, int referenc
     file.seekg((recordIndex * recordSize()) + cellSize + (pairIndex * cellSize), std::ios::beg);
     file << pad(std::to_string(recordID), cellSize)
          << pad(std::to_string(reference), cellSize);
+}
+
+int BTree::emptyCount() {
+    int c = 0;
+    char leafStatus[cellSize];
+    for (int i = 1; i < numberOfRecords; ++i) {
+        file.seekg(i * recordSize(), std::ios::beg);
+        file.read(leafStatus, cellSize);
+        if (ctoi(leafStatus) == -1) c++;
+    }
+    return c;
+}
+
+void BTree::markAsNonLeaf(int recordIndex) {
+    file.seekg(recordIndex * recordSize(), std::ios::beg);
+    file << pad("1", cellSize);
+}
+
+void BTree::splitNode(int recordIndex, std::pair<int, int> newPair) {
+
+}
+
+bool BTree::splitRoot(std::pair<int, int> newPair) {
+//  Read root
+    std::vector<std::pair<int, int>> root = readNode(1);
+
+//  Add new pair that caused the split
+    root.push_back(newPair);
+    std::sort(root.begin(), root.end());
+
+//  Find 2 empty records for the new nodes
+    int firstNodeIndex = nextEmpty(); //  Get the first empty node
+    if (firstNodeIndex == -1) return false;
+
+    int secondNodeIndex = nextEmpty(firstNodeIndex);  //  Get empty node after it
+    if (secondNodeIndex == -1) return false;
+
+//  Write in header the new empty node index (based on the last empty node found)
+
+//    TODO: Move padding into a separate function
+    int newNextEmptyInHeader = nextEmpty(secondNodeIndex);
+    std::string newNextEmptyInHeaderStr = std::to_string(newNextEmptyInHeader);
+    const char *stringToBePadded = newNextEmptyInHeaderStr.c_str();
+    char *paddedString = new char[cellSize];
+
+    for (int i = 0; i < newNextEmptyInHeaderStr.size(); ++i)
+        paddedString[i] = stringToBePadded[i];
+    for (int i = (int) newNextEmptyInHeaderStr.size(); i < cellSize; ++i)
+        paddedString[i] = ' ';
+
+    writeCharArray(cellSize, paddedString, cellSize);
+
+    std::vector<std::pair<int, int>> firstNode, secondNode;
+
+//  Fill first and second nodes from root
+    auto middle(root.begin() + (int) (root.size()) / 2);
+    for (auto it = root.begin(); it != root.end(); ++it) {
+        if (std::distance(it, middle) > 0) firstNode.push_back(*it);
+        else secondNode.push_back(*it);
+    }
+
+//  Write first node
+    writeNode(firstNode, firstNodeIndex);
+    markAsLeaf(firstNodeIndex); //  Update node's leaf status to LEAF
+
+//  Write second node
+    writeNode(secondNode, secondNodeIndex);
+    markAsLeaf(secondNodeIndex); //  Update node's leaf status to LEAF
+    
+//  Create new root with max values from the 2 new nodes
+    clearRecord(1);
+
+    std::vector<std::pair<int, int>> newRoot;
+
+//  pair in non-leaf <Redundant value: index to node with this value>
+    newRoot.emplace_back(firstNode.back().first, firstNodeIndex);
+    newRoot.emplace_back(secondNode.back().first, secondNodeIndex);
+
+    writeNode(newRoot, 1);
+    markAsNonLeaf(1); //  Update root's leaf status to NON-LEAF
+
+    return true;
+}
+
+bool BTree::isEmpty(int recordIndex) {
+//  Seek to the beginning of the record at the given index
+    file.seekg(recordIndex * recordSize(), std::ios::beg);
+
+//  Read the first cell
+    char leaf[cellSize];
+    file.read(leaf, cellSize);
+
+//  Return true if the read value is -1
+    return ctoi(leaf) == -1;
 }

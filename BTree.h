@@ -9,11 +9,16 @@
 class BTree {
 private:
     std::fstream file{};
-    int numberOfRecords{};
-    int m{};
     int cellSize{};
 
+    int numberOfRecords{};
+    int m{};
+
 public:
+    int recordSize() const { return (cellSize * ((2 * m) + 1)); }
+
+public:
+
     BTree(const std::string &filename, int _numberOfRecords, int _m, int _cellSize);
 
     ~BTree();
@@ -28,8 +33,6 @@ public:
 
     int findRecord(int recordID) const;
 
-    int recordSize() const { return (cellSize * ((2 * m) + 1)); }
-
 //  Returns the index of the next empty record in the B-tree file,
 //  or -1 if there are no empty records.
     int nextEmpty() {
@@ -42,6 +45,24 @@ public:
 
 //      Return the value as an integer
         return ctoi(cell);
+    }
+
+    bool isEmpty(int recordIndex);
+
+//  Returns the index of the next empty record after the record at recordIndex.
+    int nextEmpty(int recordIndex) {
+//      Seek to the second cell of the header
+        file.seekg(recordIndex * recordSize() + cellSize, std::ios::beg);
+
+//      Read the content of the cell
+        char cell[cellSize];
+        file.read(cell, cellSize);
+
+        int i = ctoi(cell);
+        if (!isEmpty(i)) throw "Node at this index is not even empty";
+        
+//      Return the value as an integer
+        return i;
     }
 
 //  Returns true if the record at the given index corresponds to a leaf node
@@ -60,9 +81,9 @@ public:
 
 private:
 //  Writes a character array to the B-tree file
-    int writeCharArray(int at, char *charArray, int n) {
+    void writeCharArray(int at, char *charArray, int n) {
         file.seekg(at, std::ios::beg);
-        
+
 //      Instead of printing the array of characters directly,
 //      print each character one by one to avoid weird null-terminator issue
         for (int i = 0; i < n; ++i) file << charArray[i];
@@ -72,11 +93,20 @@ private:
     static int ctoi(char *c) { return std::stoi(std::string(c)); }
 
 //  Pads the given string with whitespaces till it's size becomes n
-    static std::string pad(const std::string &s, int n) {
+    static std::string pad(const std::string &stringToBePadded, int n) {
         std::stringstream ss;
-        ss << s;
-        for (int i = 0; i < n - s.size(); ++i) ss << ' ';
+        ss << stringToBePadded;
+        for (int i = 0; i < n - stringToBePadded.size(); ++i) ss << ' ';
         return ss.str();
+    }
+
+//  Pads the given stringToBePadded with whitespaces till it's size becomes finalSize
+//  WARNING: delete the returned char array after usage
+    static const char *pad(const char *stringToBePadded, int sSize, int finalSize) {
+        char *paddedString = new char[finalSize];
+
+        
+        return paddedString;
     }
 
 //  Read the record at the given index and return it as vector of pairs of recordID and reference
@@ -91,7 +121,15 @@ private:
 
     void writePair(int recordIndex, int pairIndex, int recordID, int reference);
 
-    void getNextEmpty(int recordIndex);
+    int emptyCount();
+
+    void markAsNonLeaf(int recordIndex);
+
+    void splitNode(int recordIndex, std::pair<int, int> newPair);
+
+    bool splitRoot(std::pair<int, int> newPair);
+
+    void clearRecord(int recordIndex);
 };
 
 
