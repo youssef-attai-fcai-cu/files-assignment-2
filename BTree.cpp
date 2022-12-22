@@ -49,7 +49,7 @@ int BTree::insertRecord(int recordID, int reference) {
         //  The header's next empty cell value = the root's next empty cell value
         //  Read new next empty from root
         char newNextEmpty[cellSize];
-        file.seekg((1 * recordSize()) + cellSize, std::ios::beg);
+        file.seekg(recordSize() + cellSize, std::ios::beg);
         file.read(newNextEmpty, cellSize);
 
         //  Store new next empty in header (update 2nd cell in header)
@@ -59,35 +59,48 @@ int BTree::insertRecord(int recordID, int reference) {
         markAsLeaf(1); //  Update root's leaf status to LEAF
         return 1;
     } else {  //  Otherwise, if root is NOT empty
-
 //      Traverse records till a leaf is reached record
 //      starting from root (i.e. Record at index 1)
-        int currentRecordIndex = 1;
 
         std::stack<int> visited;
+
+        int currentRecordIndex = 1;
         visited.push(currentRecordIndex);
 
         while (!isLeaf(currentRecordIndex)) {
-            bool found = false;
-            for (int i = 0; i < m; ++i) {
+            file.seekg(currentRecordIndex * recordSize() + cellSize, std::ios::beg);
+            for (int i = 0; i <= m; ++i) {
+                if (i == m) {
+                    char prevV[cellSize];
+                    file.seekg(currentRecordIndex * recordSize() + 2 * m * cellSize, std::ios::beg);
+                    file.read(prevV, cellSize);
+                    currentRecordIndex = ctoi(prevV);
+                    visited.push(currentRecordIndex);
+                    break;
+                }
                 char key[cellSize], val[cellSize];
                 file.read(key, cellSize);
                 file.read(val, cellSize);
                 int k = ctoi(key);
                 int v = ctoi(val);
                 if (k == -1 && v == -1) {
-                    found = true;
+                    char prevV[cellSize];
+                    file.seekg(currentRecordIndex * recordSize() + 2 * i * cellSize, std::ios::beg);
+                    file.read(prevV, cellSize);
+                    currentRecordIndex = ctoi(prevV);
+                    visited.push(currentRecordIndex);
                     break;
                 }
-                currentRecordIndex = v;
                 if (recordID < k) {
-                    found = true;
+                    currentRecordIndex = v;
+                    visited.push(currentRecordIndex);
                     break;
                 }
             }
-            visited.push(currentRecordIndex);
-            if (found) break;
         }
+
+        if (visited.empty())
+            visited.push(currentRecordIndex);
 
         std::vector<std::pair<int, int>> lastVisited = readNode(currentRecordIndex);
         lastVisited.emplace_back(recordID, reference);
@@ -105,12 +118,40 @@ int BTree::insertRecord(int recordID, int reference) {
                     if (splitRoot(lastVisited)) return 1; // Successfully inserted lastVisited
                     else return -1; // No space, so no insertion
                 }
+//              Otherwise, if not root
                 int newNodeIndex = splitNode(lastVisitedIndex, lastVisited);
-                
+
+//              Update parent
+                std::vector<std::pair<int, int>> newParentForLastVisited;
+//              Add max in child nodes
+                for (auto nodeIndex: childrenIndexes(visited.top()))
+                    newParentForLastVisited.emplace_back(getMaxPair(nodeIndex).first, nodeIndex);
+                newParentForLastVisited.emplace_back(getMaxPair(newNodeIndex).first, newNodeIndex);
+                std::sort(newParentForLastVisited.begin(), newParentForLastVisited.end());
+                try {
+                    writeNode(newParentForLastVisited, visited.top());
+                } catch (const char * e) {
+                    std::cout << e << '\n';
+                }
+                if (visited.size() == 1) break;
             } else {
-//                no overflow, normal insertion
+//              No overflow, normal insertion
+                writeNode(lastVisited, lastVisitedIndex);
+                
+//              Update parent
+                if (!visited.empty()) {
+                    std::vector<std::pair<int, int>> newParentForLastVisited;
+//                  Add max in child nodes
+                    for (auto nodeIndex: childrenIndexes(visited.top()))
+                        newParentForLastVisited.emplace_back(getMaxPair(nodeIndex).first, nodeIndex);
+                    std::sort(newParentForLastVisited.begin(), newParentForLastVisited.end());
+                    writeNode(newParentForLastVisited, visited.top());
+                    if (visited.size() == 1) break;
+                }
             }
         }
+
+        return currentRecordIndex;
     }
 }
 
@@ -166,6 +207,7 @@ std::vector<std::pair<int, int>> BTree::readNode(int recordIndex) {
 }
 
 void BTree::writeNode(const std::vector<std::pair<int, int>> &node, int recordIndex) {
+    if (node.size() > m) throw "Node is too big";
 //  Seek to the beginning to the record
 //  skipping the first cell (i.e. The leaf status cell)
     file.seekg(recordIndex * recordSize() + cellSize);
