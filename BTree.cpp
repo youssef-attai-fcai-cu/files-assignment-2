@@ -88,62 +88,7 @@ int BTree::insertRecord(int recordID, int reference) {
 
         std::vector<std::pair<int, int>> node = readNode(currentRecordIndex);
         node.emplace_back(recordID, reference);
-//      If overflowed, Split
-        if (node.size() > m) {
-//          If root
-            if (currentRecordIndex == 1) {
-//              Split root, no update in parent nodes
-                if (splitRoot(std::make_pair(recordID, reference))) return 1;
-                else return -1;
-            } else {
-//              insert in full node, UPDATE parent nodes
-                int newNodeIndex = splitNode(currentRecordIndex, node);
-                visited.pop(); // Remove currentRecordIndex
-
-//              Update parent nodes
-                while (!visited.empty()) {
-//                  If no nodes were allocated from last split
-                    if (newNodeIndex == -1) return -1; // then the B-tree file has no space, insertion failed
-
-//                  Get the latest visited parent cell
-                    int lastVisitedIndex = visited.top();
-                    visited.pop();
-
-//                  Rewrite last visited with the newNodeIndex
-                    std::vector<std::pair<int, int>> lastVisited;
-
-                    // Add max in child nodes
-                    for (auto nodeIndex: childrenIndexes(lastVisitedIndex))
-                        lastVisited.emplace_back(getMaxPair(nodeIndex).first, nodeIndex);
-
-                    lastVisited.emplace_back(getMaxPair(newNodeIndex).first, newNodeIndex); // Add max in new node
-                    
-//                  TODO: The problem is, this lastVisited might itself need to split
-                    std::sort(lastVisited.begin(), lastVisited.end());
-                    writeNode(lastVisited, lastVisitedIndex);
-                }
-            }
-        } else {
-//          insert in node with enough space, no update in parent nodes 
-            std::sort(node.begin(), node.end());
-            writeNode(node, currentRecordIndex);
-//            visited.pop();
-
-            while (!visited.empty()) {
-//              Get the latest visited parent cell
-                int lastVisitedIndex = visited.top();
-                visited.pop();
-
-//              Rewrite last visited with the childrenIndexes
-                std::vector<std::pair<int, int>> lastVisited;
-                for (auto nodeIndex: childrenIndexes(lastVisitedIndex))
-                    lastVisited.emplace_back(getMaxPair(nodeIndex).first, nodeIndex);
-                std::sort(lastVisited.begin(), lastVisited.end());
-                writeNode(lastVisited, lastVisitedIndex);
-            }
-
-            return currentRecordIndex;
-        }
+        
     }
     return 0;
 }
