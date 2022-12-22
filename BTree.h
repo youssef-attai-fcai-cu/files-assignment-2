@@ -60,7 +60,7 @@ public:
 
         int i = ctoi(cell);
         if (!isEmpty(i)) throw "Node at this index is not even empty";
-        
+
 //      Return the value as an integer
         return i;
     }
@@ -100,15 +100,6 @@ private:
         return ss.str();
     }
 
-//  Pads the given stringToBePadded with whitespaces till it's size becomes finalSize
-//  WARNING: delete the returned char array after usage
-    static const char *pad(const char *stringToBePadded, int sSize, int finalSize) {
-        char *paddedString = new char[finalSize];
-
-        
-        return paddedString;
-    }
-
 //  Read the record at the given index and return it as vector of pairs of recordID and reference
     std::vector<std::pair<int, int>> readNode(int recordIndex);
 
@@ -126,6 +117,10 @@ private:
     void markAsNonLeaf(int recordIndex);
 
     std::vector<int> splitNode(int recordIndex);
+    
+    std::pair<int, int> getMaxPair(int recordIndex);
+    
+    std::vector<int> childrenIndexes(int recordIndex);
 
     bool splitRoot(std::pair<int, int> newPair);
 
