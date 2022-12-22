@@ -117,7 +117,8 @@ int BTree::insertRecord(int recordID, int reference) {
                         lastVisited.emplace_back(getMaxPair(nodeIndex).first, nodeIndex);
 
                     lastVisited.emplace_back(getMaxPair(newNodeIndex).first, newNodeIndex); // Add max in new node
-
+                    
+//                  TODO: The problem is, this lastVisited might itself need to split
                     std::sort(lastVisited.begin(), lastVisited.end());
                     writeNode(lastVisited, lastVisitedIndex);
                 }
