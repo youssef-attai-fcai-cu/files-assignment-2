@@ -58,6 +58,13 @@ int BTree::insertRecord(int recordID, int reference) {
         writePair(1, 0, recordID, reference); //  Write pair in root node
         markAsLeaf(1); //  Update root's leaf status to LEAF
     } else {  //  Otherwise, if root is NOT empty
+
+//      Traverse records till a leaf is reached record
+//      starting from root (i.e. Record at index 1)
+        int currentRecordIndex = 1;
+        while (!isLeaf(currentRecordIndex)) {
+            currentRecordIndex++;
+        }
 //      Check if root is leaf
         if (isLeaf(1)) {
 //          Insert (possibly split)
