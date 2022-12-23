@@ -35,7 +35,7 @@ public:
     // Initializes the b-tree file with the maximum number of
     // records it can hold, and the maximum number of values
     // one record can hold, and the size of each pair in the b-tree file.
-    BTree(std::string _path, int _m, int _numberOfRecords, int _cellSize);
+    BTree(std::string _path, int _numberOfRecords, int _m, int _cellSize);
 
     // Closes the b-tree file.
     ~BTree();
@@ -50,7 +50,7 @@ public:
     // Searches for the node with the given value.
     // Returns the index of the record in the b-tree.
     // Returns -1 if the given value is not found in any node.
-    int find(int recordId);
+    int search(int recordId);
 
     // Prints the b-tree file in a table format.
     void display();
@@ -75,7 +75,6 @@ public:
     // Returns true if the record's leaf status is equal to -1
     bool isEmpty(int recordNumber);
 private:
-
     // Splits the record into two.
     // Returns the number of the newly allocated record in the b-tree file.
     int split(int recordNumber);
@@ -89,6 +88,10 @@ private:
 
     // Returns the integer value that the specified cell holds.
     int cell(int rowIndex, int columnIndex);
+    
+    // Writes the given value in the specified cell
+    // in the b-tree file.
+    void writeCell(int value, int rowIndex, int columnIndex);
 
     // Asserts the given record number is within a valid range.
     // This valid range depends on the maximum number of records
@@ -100,7 +103,15 @@ private:
     // a record in the b-tree file can hold.
     void validatePairNumber(int pairNumber) const;
 
+    // Initializes the b-tree file with -1s
+    // and the available list
     void initialize();
 
+    // Returns the given value in a padded string
+    // with the size of the cell in the b-tree file.
     std::string pad(int value) const;
+
+    void writeNode(const std::vector<std::pair<int, int>>& node, int recordNumber);
+
+    void markLeaf(int recordNumber);
 };
