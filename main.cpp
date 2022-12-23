@@ -41,7 +41,7 @@ void assignmentTestCase(BTree &btree) {
     btree.insert(19, 84);
     btree.display();
 
-    btree.insert(30, 196);
+    btree.insert(30, 96);
     btree.insert(15, 108);
     btree.insert(1, 120);
     btree.insert(5, 132);
