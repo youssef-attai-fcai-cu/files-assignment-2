@@ -3,8 +3,20 @@
 
 void printSeparator();
 
+void assignmentTestCase(BTree &btree);
+
 int main() {
-    BTree btree(10, 5, 5);
+    BTree btree("../btree", 10, 5, 5);
+    btree.display();
+    
+    return 0;
+}
+
+void printSeparator() {
+    std::cout << '\n' << "---------------------------------------------" << '\n';
+}
+
+void assignmentTestCase(BTree &btree) {
     btree.insert(3, 12);
     btree.insert(7, 24);
     btree.insert(10, 48);
@@ -41,10 +53,4 @@ int main() {
     btree.insert(32, 240);
     btree.display();
     printSeparator();
-
-    return 0;
-}
-
-void printSeparator() {
-    std::cout << '\n' << "---------------------------------------------" << '\n';
 }

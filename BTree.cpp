@@ -1,3 +1,6 @@
+#include <sstream>
+#include <utility>
+#include <iostream>
 #include "BTree.h"
 #include "exceptions/InvalidRecordNumber.h"
 #include "exceptions/InvalidPairNumber.h"
@@ -6,8 +9,9 @@
 #define EXISTING_FILE (std::ios::in | std::ios::out | std::ios::app)
 #define NEW_FILE (std::ios::trunc | EXISTING_FILE)
 
-BTree::BTree(int _m, int _numberOfRecords, int _cellSize) {
+BTree::BTree(std::string _path, int _m, int _numberOfRecords, int _cellSize) {
     openFile();
+    path = std::move(_path);
     m = _m;
     numberOfRecords = _numberOfRecords;
     cellSize = _cellSize;
@@ -15,12 +19,19 @@ BTree::BTree(int _m, int _numberOfRecords, int _cellSize) {
 }
 
 void BTree::openFile() {
-    file.open("btree", EXISTING_FILE);
-    if (!file) file.open("btree", NEW_FILE);
+    file.open("../btree", EXISTING_FILE);
+    if (!file) file.open("../btree", NEW_FILE);
 }
 
 void BTree::display() {
+    char record[recordSize()];
+
     // Iterate over records printing every one in a new line.
+    for (int i = 0; i < numberOfRecords + 1; ++i) {
+        file.seekg(i * recordSize(), std::ios::beg);
+        file.read(record, recordSize());
+        std::cout << record << '\n';
+    }
 }
 
 BTree::~BTree() {
@@ -83,12 +94,21 @@ int BTree::insert(int recordId, int reference) {
 void BTree::initialize() {
     for (int i = 0; i < numberOfRecords; ++i) {
         file << pad(-1);
-        for (int j = 0; j < m; ++j) {
-            
-        }
+        file << pad(i + 1);
+        for (int j = 0; j < m * 2; ++j) file << pad(-1);
     }
 }
 
-std::string BTree::pad(int value) {
-    return 0;
+std::string BTree::pad(int value) const {
+    std::stringstream ss;
+
+    // Convert the integer value into a string
+    std::string v = std::to_string(value);
+
+    // Write the string
+    ss << v;
+
+    // Write spaces until the final result's size becomes the cell size
+    for (int i = 0; i < cellSize - v.size(); ++i) ss << ' ';
+    return ss.str();
 }

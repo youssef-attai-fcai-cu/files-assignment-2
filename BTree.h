@@ -6,6 +6,9 @@
 
 class BTree {
 private:
+    // The b-tree's file path.
+    std::string path;
+
     // The file that holds the b-tree nodes.
     std::fstream file;
 
@@ -18,8 +21,8 @@ private:
     // The number of characters allocated for each pair
     // in the b-tree file.
     int cellSize;
-
 public:
+
     // Returns the number of characters a record in the b-tree file takes
     // based on the specified pair size and number of values that one record can hold.
     int recordSize() const { return cellSize + 2 * m * cellSize; }
@@ -27,12 +30,12 @@ public:
     // Returns the number of characters a pair values takes in a record
     // based on the specified pair size. 
     int pairSize() const { return 2 * cellSize; }
-
 public:
+
     // Initializes the b-tree file with the maximum number of
     // records it can hold, and the maximum number of values
     // one record can hold, and the size of each pair in the b-tree file.
-    BTree(int _m, int _numberOfRecords, int _cellSize);
+    BTree(std::string _path, int _m, int _numberOfRecords, int _cellSize);
 
     // Closes the b-tree file.
     ~BTree();
@@ -71,8 +74,8 @@ public:
 
     // Returns true if the record's leaf status is equal to -1
     bool isEmpty(int recordNumber);
-
 private:
+
     // Splits the record into two.
     // Returns the number of the newly allocated record in the b-tree file.
     int split(int recordNumber);
@@ -83,7 +86,7 @@ private:
 
     // Opens the b-tree's file.
     void openFile();
-    
+
     // Returns the integer value that the specified cell holds.
     int cell(int rowIndex, int columnIndex);
 
@@ -99,5 +102,5 @@ private:
 
     void initialize();
 
-    std::string pad(int value);
+    std::string pad(int value) const;
 };
