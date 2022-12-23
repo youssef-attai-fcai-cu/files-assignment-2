@@ -12,7 +12,7 @@ int main() {
     btree.insert(24, 60);
     btree.insert(14, 72);
     btree.insert(19, 84);
-    btree.insert(30, 196);
+    btree.insert(30, 96);
     btree.insert(15, 108);
     btree.insert(1, 120);
     btree.insert(5, 132);
