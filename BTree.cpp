@@ -179,7 +179,12 @@ int BTree::insert(int recordId, int reference) {
 
     // Write the node in root
     writeNode(current, i);
+    
+    // If the insertion happened in root
+    // Then there are no parents to update
+    if (i == 1) return i;
 
+    // Otherwise, update parents
     while (!visited.empty()) {
         int lastVisitedIndex = visited.top();
         visited.pop();
@@ -277,5 +282,47 @@ int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
 }
 
 int BTree::split(int recordNumber) {
-    return 0;
+    // Get the index of the new record created after split
+    int newRecordNumber = nextEmpty();
+
+    // If there are no empty records, then splitting fails
+    if (newRecordNumber == -1) return -1;
+
+    // Update the next empty cell with the next in available list
+    writeCell(cell(newRecordNumber, 1), 0, 1);
+
+    // Distribute originalNode on two new nodes
+    std::vector<std::pair<int, int>> firstNode, secondNode;
+
+    auto originalNode = node(recordNumber);
+
+    // Fill first and second nodes from originalNode
+    auto middle(originalNode.begin() + (int) (originalNode.size()) / 2);
+    for (auto it = originalNode.begin(); it != originalNode.end(); ++it) {
+        if (std::distance(it, middle) > 0) firstNode.push_back(*it);
+        else secondNode.push_back(*it);
+    }
+
+    // Clear originalNodeIndex and newNodeIndex
+    clearRecord(recordNumber);
+    clearRecord(newRecordNumber);
+
+    writeNode(firstNode, recordNumber);
+    markLeaf(recordNumber);
+
+    writeNode(secondNode, newRecordNumber);
+    markLeaf(newRecordNumber);
+
+    return newRecordNumber;
+}
+
+void BTree::clearRecord(int recordNumber) {
+    for (int i = 1; i < m * 2; ++i) {
+        file.seekg(recordNumber * recordSize() + i * cellSize, std::ios::beg);
+        file << pad(-1);
+    }
+}
+
+void BTree::split() {
+
 }
