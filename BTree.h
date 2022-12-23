@@ -114,4 +114,6 @@ private:
     void writeNode(const std::vector<std::pair<int, int>>& node, int recordNumber);
 
     void markLeaf(int recordNumber);
+
+    int update(int parentRecordNumber, int newChildRecordNumber);
 };

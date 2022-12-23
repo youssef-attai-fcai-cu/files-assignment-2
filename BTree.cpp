@@ -2,6 +2,7 @@
 #include <utility>
 #include <iostream>
 #include <algorithm>
+#include <stack>
 #include "BTree.h"
 #include "exceptions/InvalidRecordNumber.h"
 #include "exceptions/InvalidPairNumber.h"
@@ -137,40 +138,58 @@ int BTree::insert(int recordId, int reference) {
         return 1;
     }
 
+    // Keep track of visited records to update them after insertion
+    std::stack<int> visited;
+
     // Search for recordId in every node in the b-tree
     // starting with the root
-    int currentIndex = 1;
+    int i = 1;
     bool found;
-    while (!isLeaf(currentIndex)) {
-        current = node(currentIndex);
+    while (!isLeaf(i)) {
+        visited.push(i);
+        current = node(i);
         found = false;
         for (auto p: current) {
             // If a greater value is found
             if (p.first >= recordId) {
-                currentIndex = p.second;
+                // B-Tree traversal
+                i = p.second;
                 found = true;
                 break;
             }
         }
-        if (!found) currentIndex = current.back().second;
+
+        // B-Tree traversal
+        if (!found) i = current.back().second;
     }
 
-    current = node(currentIndex);
-    
+    current = node(i);
+
     // Insert the new pair
     current.emplace_back(recordId, reference);
 
     // Sort the node
     std::sort(current.begin(), current.end());
-    
-    
+
+    int newFromSplitIndex = -1;
+
+    // If record overflowed after insertion
+    if (current.size() > m)
+        newFromSplitIndex = split(i);
 
     // Write the node in root
-    writeNode(current, 1);
+    writeNode(current, i);
+
+    while (!visited.empty()) {
+        int lastVisitedIndex = visited.top();
+        visited.pop();
+
+        newFromSplitIndex = update(lastVisitedIndex, newFromSplitIndex);
+    }
 
     // Return the index of the inserted record
     // or -1 if insertion failed
-    return currentIndex;
+    return i;
 }
 
 void BTree::initialize() {
@@ -229,4 +248,34 @@ void BTree::writeNode(const std::vector<std::pair<int, int>> &node, int recordNu
 void BTree::markLeaf(int recordNumber) {
     file.seekg(recordNumber * recordSize(), std::ios::beg);
     file << pad(0);
+}
+
+int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
+    std::vector<std::pair<int, int>> newParent;
+    auto parent = node(parentRecordNumber);
+    // For each value in parent
+    for (auto p: parent)
+        // Add the maximum of the value's child
+        newParent.push_back(node(p.second).back());
+    // If there was a new child from previous split
+    if (newChildRecordNumber != -1)
+        //  Add the maximum of the new value's child
+        newParent.push_back(node(newChildRecordNumber).back());
+
+    std::sort(newParent.begin(), newParent.end());
+
+    int newFromSplitIndex = -1;
+
+    // If record overflowed after insertion
+    if (newParent.size() > m)
+        newFromSplitIndex = split(parentRecordNumber);
+
+    // Write new parent
+    writeNode(newParent, parentRecordNumber);
+
+    return newFromSplitIndex;
+}
+
+int BTree::split(int recordNumber) {
+    return 0;
 }
