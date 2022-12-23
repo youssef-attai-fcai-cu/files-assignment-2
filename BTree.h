@@ -77,10 +77,10 @@ public:
 private:
     // Splits the record into two.
     // Returns the number of the newly allocated record in the b-tree file.
-    int split(int recordNumber);
+    int split(int recordNumber, std::vector<std::pair<int, int >> originalNode);
 
     // Splits the root into two and allocates a new root.
-    void split();
+    bool split(std::vector<std::pair<int, int>> root);
 
     // Opens the b-tree's file.
     void openFile();
@@ -117,4 +117,6 @@ private:
     int update(int parentRecordNumber, int newChildRecordNumber);
 
     void clearRecord(int recordNumber);
+
+    void markNonLeaf(int recordNumber);
 };

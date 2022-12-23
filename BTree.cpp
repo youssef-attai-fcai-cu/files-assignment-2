@@ -175,11 +175,11 @@ int BTree::insert(int recordId, int reference) {
 
     // If record overflowed after insertion
     if (current.size() > m)
-        newFromSplitIndex = split(i);
+        newFromSplitIndex = split(i, current);
+    else
+        // Write the node in root
+        writeNode(current, i);
 
-    // Write the node in root
-    writeNode(current, i);
-    
     // If the insertion happened in root
     // Then there are no parents to update
     if (i == 1) return i;
@@ -261,11 +261,11 @@ int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
     // For each value in parent
     for (auto p: parent)
         // Add the maximum of the value's child
-        newParent.push_back(node(p.second).back());
+        newParent.emplace_back(node(p.second).back().first, p.second);
     // If there was a new child from previous split
     if (newChildRecordNumber != -1)
         //  Add the maximum of the new value's child
-        newParent.push_back(node(newChildRecordNumber).back());
+        newParent.emplace_back(node(newChildRecordNumber).back().first, newChildRecordNumber);
 
     std::sort(newParent.begin(), newParent.end());
 
@@ -273,7 +273,7 @@ int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
 
     // If record overflowed after insertion
     if (newParent.size() > m)
-        newFromSplitIndex = split(parentRecordNumber);
+        newFromSplitIndex = split(parentRecordNumber, newParent);
 
     // Write new parent
     writeNode(newParent, parentRecordNumber);
@@ -281,7 +281,10 @@ int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
     return newFromSplitIndex;
 }
 
-int BTree::split(int recordNumber) {
+int BTree::split(int recordNumber, std::vector<std::pair<int, int>> originalNode) {
+    if (recordNumber == 1)
+        return split(originalNode);
+
     // Get the index of the new record created after split
     int newRecordNumber = nextEmpty();
 
@@ -293,8 +296,6 @@ int BTree::split(int recordNumber) {
 
     // Distribute originalNode on two new nodes
     std::vector<std::pair<int, int>> firstNode, secondNode;
-
-    auto originalNode = node(recordNumber);
 
     // Fill first and second nodes from originalNode
     auto middle(originalNode.begin() + (int) (originalNode.size()) / 2);
@@ -317,12 +318,51 @@ int BTree::split(int recordNumber) {
 }
 
 void BTree::clearRecord(int recordNumber) {
-    for (int i = 1; i < m * 2; ++i) {
+    for (int i = 1; i <= m * 2; ++i) {
         file.seekg(recordNumber * recordSize() + i * cellSize, std::ios::beg);
         file << pad(-1);
     }
 }
 
-void BTree::split() {
+bool BTree::split(std::vector<std::pair<int, int>> root) {
+    // Find 2 empty records for the new nodes
+    int firstNodeIndex = nextEmpty();
+    if (firstNodeIndex == -1) return false;
 
+    // Get next empty node in available list
+    int secondNodeIndex = cell(firstNodeIndex, 1);
+    if (secondNodeIndex == -1) return false;
+
+    // Update the next empty cell with the next in available list
+    writeCell(cell(secondNodeIndex, 1), 0, 1);
+
+    std::vector<std::pair<int, int>> firstNode, secondNode;
+
+    // Fill first and second nodes from root
+    auto middle(root.begin() + (int) (root.size()) / 2);
+    for (auto it = root.begin(); it != root.end(); ++it) {
+        if (std::distance(it, middle) > 0) firstNode.push_back(*it);
+        else secondNode.push_back(*it);
+    }
+
+    writeNode(firstNode, firstNodeIndex);
+    markLeaf(firstNodeIndex);
+
+    writeNode(secondNode, secondNodeIndex);
+    markLeaf(secondNodeIndex);
+
+    clearRecord(1);
+
+    // Create new root with max values from the 2 new nodes
+    std::vector<std::pair<int, int>> newRoot;
+    newRoot.emplace_back(firstNode.back().first, firstNodeIndex);
+    newRoot.emplace_back(secondNode.back().first, secondNodeIndex);
+    writeNode(newRoot, 1);
+    markNonLeaf(1);
+    return true;
+}
+
+void BTree::markNonLeaf(int recordNumber) {
+    file.seekg(recordNumber * recordSize(), std::ios::beg);
+    file << pad(1);
 }
