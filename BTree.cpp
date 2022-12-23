@@ -132,7 +132,7 @@ int BTree::insert(int recordId, int reference) {
         writeNode(current, 1);
 
         // Mark the root as leaf
-        markLeaf(1);
+        markLeaf(1, 0);
 
         // Return the index of the record in which the insertion happened
         // i.e. the root in this case
@@ -254,9 +254,9 @@ void BTree::writeNode(const std::vector<std::pair<int, int>> &node, int recordNu
         file << pad(p.first) << pad(p.second);
 }
 
-void BTree::markLeaf(int recordNumber) {
+void BTree::markLeaf(int recordNumber, int leafStatus) {
     file.seekg(recordNumber * recordSize(), std::ios::beg);
-    file << pad(0);
+    file << pad(leafStatus);
 }
 
 int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
@@ -312,11 +312,11 @@ int BTree::split(int recordNumber, std::vector<std::pair<int, int>> originalNode
     clearRecord(recordNumber);
     clearRecord(newRecordNumber);
 
+    markLeaf(recordNumber, 0);
     writeNode(firstNode, recordNumber);
-    markLeaf(recordNumber);
 
+    markLeaf(newRecordNumber, 0);
     writeNode(secondNode, newRecordNumber);
-    markLeaf(newRecordNumber);
 
     return newRecordNumber;
 }
@@ -349,11 +349,11 @@ bool BTree::split(std::vector<std::pair<int, int>> root) {
         else secondNode.push_back(*it);
     }
 
+    markLeaf(firstNodeIndex, leafStatus(1));
     writeNode(firstNode, firstNodeIndex);
-    markLeaf(firstNodeIndex);
 
+    markLeaf(secondNodeIndex, leafStatus(1));
     writeNode(secondNode, secondNodeIndex);
-    markLeaf(secondNodeIndex);
 
     clearRecord(1);
 
@@ -361,12 +361,17 @@ bool BTree::split(std::vector<std::pair<int, int>> root) {
     std::vector<std::pair<int, int>> newRoot;
     newRoot.emplace_back(firstNode.back().first, firstNodeIndex);
     newRoot.emplace_back(secondNode.back().first, secondNodeIndex);
-    writeNode(newRoot, 1);
     markNonLeaf(1);
+    writeNode(newRoot, 1);
+
     return true;
 }
 
 void BTree::markNonLeaf(int recordNumber) {
     file.seekg(recordNumber * recordSize(), std::ios::beg);
     file << pad(1);
+}
+
+int BTree::leafStatus(int recordNumber) {
+    return cell(recordNumber, 0);
 }

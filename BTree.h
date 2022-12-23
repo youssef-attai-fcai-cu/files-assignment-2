@@ -112,11 +112,13 @@ private:
 
     void writeNode(const std::vector<std::pair<int, int>>& node, int recordNumber);
 
-    void markLeaf(int recordNumber);
+    void markLeaf(int recordNumber, int leafStatus);
 
     int update(int parentRecordNumber, int newChildRecordNumber);
 
     void clearRecord(int recordNumber);
 
     void markNonLeaf(int recordNumber);
+
+    int leafStatus(int recordNumber);
 };
