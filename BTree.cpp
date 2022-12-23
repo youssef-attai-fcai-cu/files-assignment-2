@@ -206,7 +206,10 @@ void BTree::initialize() {
 
         // Write the number of the next empty record
         // in the available list
-        writeCell(recordIndex + 1, recordIndex, 1);
+        if (recordIndex == numberOfRecords - 1)
+            writeCell(-1, recordIndex, 1);
+        else
+            writeCell(recordIndex + 1, recordIndex, 1);
 
         // Fill the rest of the record with -1s
         for (int cellIndex = 2; cellIndex <= m * 2; ++cellIndex)
@@ -274,9 +277,9 @@ int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
     // If record overflowed after insertion
     if (newParent.size() > m)
         newFromSplitIndex = split(parentRecordNumber, newParent);
-
-    // Write new parent
-    writeNode(newParent, parentRecordNumber);
+    else
+        // Write new parent
+        writeNode(newParent, parentRecordNumber);
 
     return newFromSplitIndex;
 }
