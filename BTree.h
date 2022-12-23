@@ -1,131 +1,103 @@
-#ifndef ASSIGNMENT_2_BTREE_H
-#define ASSIGNMENT_2_BTREE_H
+#pragma once
 
-#include <string>
 #include <fstream>
-#include <sstream>
 #include <vector>
+
 
 class BTree {
 private:
-    std::fstream file{};
-    int cellSize{};
+    // The file that holds the b-tree nodes.
+    std::fstream file;
 
-    int numberOfRecords{};
-    int m{};
+    // The number of values one node can hold.
+    int m;
+
+    // The maximum number of records the b-tree file can hold.
+    int numberOfRecords;
+
+    // The number of characters allocated for each pair
+    // in the b-tree file.
+    int cellSize;
 
 public:
-    int recordSize() const { return (cellSize * ((2 * m) + 1)); }
+    // Returns the number of characters a record in the b-tree file takes
+    // based on the specified pair size and number of values that one record can hold.
+    int recordSize() const { return cellSize + 2 * m * cellSize; }
+
+    // Returns the number of characters a pair values takes in a record
+    // based on the specified pair size. 
+    int pairSize() const { return 2 * cellSize; }
 
 public:
+    // Initializes the b-tree file with the maximum number of
+    // records it can hold, and the maximum number of values
+    // one record can hold, and the size of each pair in the b-tree file.
+    BTree(int _m, int _numberOfRecords, int _cellSize);
 
-    BTree(const std::string &filename, int _numberOfRecords, int _m, int _cellSize);
-
+    // Closes the b-tree file.
     ~BTree();
 
-    void createFile();
+    //  Inserts a new value in the b-tree.
+    //  Returns the index of the record in the b-tree file.
+    //  Returns -1 if insertion failed.
+    //  Insertion fails if there are no enough empty
+    //  records to complete the insertion.
+    int insert(int recordId, int reference);
 
-    void displayFile();
+    // Searches for the node with the given value.
+    // Returns the index of the record in the b-tree.
+    // Returns -1 if the given value is not found in any node.
+    int find(int recordId);
 
-    int insertRecord(int recordID, int reference);
+    // Prints the b-tree file in a table format.
+    void display();
 
-    void deleteRecord(int recordID);
+    // Searches for and removes the given value from the b-tree.
+    void remove(int recordId);
 
-    int findRecord(int recordID) const;
+    // Reads and returns the cell at the specified record and pair numbers.
+    std::pair<int, int> pair(int recordNumber, int pairNumber);
 
-//  Returns the index of the next empty record in the B-tree file,
-//  or -1 if there are no empty records.
-    int nextEmpty() {
-//      Seek to the second cell of the header
-        file.seekg(cellSize, std::ios::beg);
+    // Reads and returns the node at the specified record number.
+    std::vector<std::pair<int, int>> node(int recordNumber);
 
-//      Read the content of the cell
-        char cell[cellSize];
-        file.read(cell, cellSize);
+    // Returns the value of the second pair in the header.
+    // This value is the number of the first empty record
+    // available for allocation.
+    int nextEmpty();
 
-//      Return the value as an integer
-        return ctoi(cell);
-    }
+    // Returns true if the record's leaf status is equal to 0
+    bool isLeaf(int recordNumber);
 
-    bool isEmpty(int recordIndex);
-
-//  Returns the index of the next empty record after the record at recordIndex.
-    int nextEmpty(int recordIndex) {
-//      Seek to the second cell of the header
-        file.seekg(recordIndex * recordSize() + cellSize, std::ios::beg);
-
-//      Read the content of the cell
-        char cell[cellSize];
-        file.read(cell, cellSize);
-
-        int i = ctoi(cell);
-        if (!isEmpty(i)) throw "Node at this index is not even empty";
-
-//      Return the value as an integer
-        return i;
-    }
-
-//  Returns true if the record at the given index corresponds to a leaf node
-//  i.e. The value in the record's first cell is 0
-    bool isLeaf(int recordIndex) {
-//      Seek to the beginning of the record at the given index
-        file.seekg(recordIndex * recordSize(), std::ios::beg);
-
-//      Read the first cell
-        char leaf[cellSize];
-        file.read(leaf, cellSize);
-
-//      Return true if the read value is 0
-        return ctoi(leaf) == 0;
-    }
+    // Returns true if the record's leaf status is equal to -1
+    bool isEmpty(int recordNumber);
 
 private:
-//  Writes a character array to the B-tree file
-    void writeCharArray(int at, char *charArray, int n) {
-        file.seekg(at, std::ios::beg);
+    // Splits the record into two.
+    // Returns the number of the newly allocated record in the b-tree file.
+    int split(int recordNumber);
 
-//      Instead of printing the array of characters directly,
-//      print each character one by one to avoid weird null-terminator issue
-        for (int i = 0; i < n; ++i) file << charArray[i];
-    }
+    // Splits the root into two and allocates a new root.
+    // Returns the numbers of the newly allocated records in the b-tree file.
+    std::vector<int> split();
 
-//  Converts a character array to an integer
-    static int ctoi(char *c) { return std::stoi(std::string(c)); }
-
-//  Pads the given string with whitespaces till it's size becomes n
-    static std::string pad(const std::string &stringToBePadded, int n) {
-        std::stringstream ss;
-        ss << stringToBePadded;
-        for (int i = 0; i < n - stringToBePadded.size(); ++i) ss << ' ';
-        return ss.str();
-    }
-
-//  Read the record at the given index and return it as vector of pairs of recordID and reference
-    std::vector<std::pair<int, int>> readNode(int recordIndex);
-
-//  Write node record at the given index
-    void writeNode(const std::vector<std::pair<int, int>> &node, int recordIndex);
-
-    bool rootIsEmpty();
-
-    void markAsLeaf(int recordIndex);
-
-    void writePair(int recordIndex, int pairIndex, int recordID, int reference);
-
-    int emptyCount();
-
-    void markAsNonLeaf(int recordIndex);
-
-    int splitNode(int recordIndex, std::vector<std::pair<int, int>> originalNode);
+    // Opens the b-tree's file.
+    void openFile();
     
-    std::pair<int, int> getMaxPair(int recordIndex);
-    
-    std::vector<int> childrenIndexes(int recordIndex);
+    // Returns the integer value that the specified cell holds.
+    int cell(int rowIndex, int columnIndex);
 
-    bool splitRoot(std::vector<std::pair<int, int>> root);
+    // Asserts the given record number is within a valid range.
+    // This valid range depends on the maximum number of records
+    // that the b-tree file can hold.
+    void validateRecordNumber(int recordNumber) const;
 
-    void clearRecord(int recordIndex);
+    // Asserts the given pair number is within a valid range.
+    // This valid range depends on the maximum number of values
+    // a record in the b-tree file can hold.
+    void validatePairNumber(int pairNumber) const;
+
+    void initialize();
+
+    std::string pad(int value);
 };
-
-
-#endif //ASSIGNMENT_2_BTREE_H
