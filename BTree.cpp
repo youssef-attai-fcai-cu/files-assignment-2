@@ -62,7 +62,7 @@ std::vector<std::pair<int, int>> BTree::node(int recordNumber) {
     file.seekg(recordNumber * recordSize() + cellSize, std::ios::beg);
 
     // Create and return the node
-    std::vector<std::pair<int, int>> theNode;
+    std::vector<std::pair<int, int>> theNode{};
 
     // Read every pair in the node
     for (int i = 1; i <= m; ++i) {
@@ -248,6 +248,7 @@ bool BTree::isEmpty(int recordNumber) {
 }
 
 void BTree::writeNode(const std::vector<std::pair<int, int>> &node, int recordNumber) {
+    clearRecord(recordNumber);
     file.seekg(recordNumber * recordSize() + cellSize, std::ios::beg);
     for (auto p: node)
         file << pad(p.first) << pad(p.second);
@@ -262,9 +263,15 @@ int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
     std::vector<std::pair<int, int>> newParent;
     auto parent = node(parentRecordNumber);
     // For each value in parent
-    for (auto p: parent)
+    for (auto p: parent) {
+        auto childNode = node(p.second);
+        if (childNode.empty()) {
+            markEmpty(p.second);
+            continue;
+        }
         // Add the maximum of the value's child
-        newParent.emplace_back(node(p.second).back().first, p.second);
+        newParent.emplace_back(childNode.back().first, p.second);
+    }
     // If there was a new child from previous split
     if (newChildRecordNumber != -1)
         //  Add the maximum of the new value's child
@@ -377,7 +384,7 @@ int BTree::leafStatus(int recordNumber) {
 
 int BTree::search(int recordId) {
     if (isEmpty(1)) return -1;
-    
+
     std::vector<std::pair<int, int>> current;
 
     // Search for recordId in every node in the b-tree
@@ -405,6 +412,61 @@ int BTree::search(int recordId) {
     for (auto pair: current)
         if (pair.first == recordId)
             return pair.second;
-    
+
     return -1;
+}
+
+void BTree::remove(int recordId) {
+    // If the root is empty
+    if (isEmpty(1)) return;
+
+    std::vector<std::pair<int, int>> current;
+
+    // Keep track of visited records to update them after insertion
+    std::stack<int> visited;
+
+    // Search for recordId in every node in the b-tree
+    // starting with the root
+    int i = 1;
+    bool found;
+    while (!isLeaf(i)) {
+        visited.push(i);
+        current = node(i);
+        found = false;
+        for (auto p: current) {
+            // If a greater value is found
+            if (p.first >= recordId) {
+                // B-Tree traversal
+                i = p.second;
+                found = true;
+                break;
+            }
+        }
+
+        // B-Tree traversal
+        if (!found) i = current.back().second;
+    }
+
+    current = node(i);
+
+    // Delete first pair with first == recordId
+    for (auto pair = current.begin(); pair != current.end(); ++pair)
+        if (pair->first == recordId) {
+            current.erase(pair);
+            break;
+        }
+
+    writeNode(current, i);
+
+    // Otherwise, update parents
+    while (!visited.empty()) {
+        int lastVisitedIndex = visited.top();
+        visited.pop();
+        update(lastVisitedIndex, -1);
+    }
+}
+
+void BTree::markEmpty(int recordNumber) {
+    file.seekg(recordNumber * recordSize(), std::ios::beg);
+    file << pad(-1);
 }

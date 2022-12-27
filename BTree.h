@@ -121,4 +121,6 @@ private:
     void markNonLeaf(int recordNumber);
 
     int leafStatus(int recordNumber);
+
+    void markEmpty(int recordNumber);
 };
