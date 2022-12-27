@@ -36,7 +36,6 @@ void BTree::display() {
 
         std::cout << '\n';
     }
-    std::cout << "-----------------------------------------------------\n";
 }
 
 BTree::~BTree() {
@@ -374,4 +373,38 @@ void BTree::markNonLeaf(int recordNumber) {
 
 int BTree::leafStatus(int recordNumber) {
     return cell(recordNumber, 0);
+}
+
+int BTree::search(int recordId) {
+    if (isEmpty(1)) return -1;
+    
+    std::vector<std::pair<int, int>> current;
+
+    // Search for recordId in every node in the b-tree
+    // starting with the root
+    int i = 1;
+    bool found;
+    while (!isLeaf(i)) {
+        current = node(i);
+        found = false;
+        for (auto p: current) {
+            // If a greater value is found
+            if (p.first >= recordId) {
+                // B-Tree traversal
+                i = p.second;
+                found = true;
+                break;
+            }
+        }
+
+        // B-Tree traversal
+        if (!found) i = current.back().second;
+    }
+
+    current = node(i);
+    for (auto pair: current)
+        if (pair.first == recordId)
+            return pair.second;
+    
+    return -1;
 }
