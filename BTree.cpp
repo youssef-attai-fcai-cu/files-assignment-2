@@ -36,7 +36,6 @@ void BTree::display() {
 
         std::cout << '\n';
     }
-    std::cout << "-----------------------------------------------------\n";
 }
 
 BTree::~BTree() {
@@ -63,7 +62,7 @@ std::vector<std::pair<int, int>> BTree::node(int recordNumber) {
     file.seekg(recordNumber * recordSize() + cellSize, std::ios::beg);
 
     // Create and return the node
-    std::vector<std::pair<int, int>> theNode;
+    std::vector<std::pair<int, int>> theNode{};
 
     // Read every pair in the node
     for (int i = 1; i <= m; ++i) {
@@ -139,7 +138,7 @@ int BTree::insert(int recordId, int reference) {
         return 1;
     }
 
-    // Keep track of visited records to update them after insertion
+    // Keep track of visited records to updateAfterInsert them after insertion
     std::stack<int> visited;
 
     // Search for recordId in every node in the b-tree
@@ -182,15 +181,15 @@ int BTree::insert(int recordId, int reference) {
         writeNode(current, i);
 
     // If the insertion happened in root
-    // Then there are no parents to update
+    // Then there are no parents to updateAfterInsert
     if (i == 1) return i;
 
-    // Otherwise, update parents
+    // Otherwise, updateAfterInsert parents
     while (!visited.empty()) {
         int lastVisitedIndex = visited.top();
         visited.pop();
 
-        newFromSplitIndex = update(lastVisitedIndex, newFromSplitIndex);
+        newFromSplitIndex = updateAfterInsert(lastVisitedIndex, newFromSplitIndex);
     }
 
     // Return the index of the inserted record
@@ -249,6 +248,7 @@ bool BTree::isEmpty(int recordNumber) {
 }
 
 void BTree::writeNode(const std::vector<std::pair<int, int>> &node, int recordNumber) {
+    clearRecord(recordNumber);
     file.seekg(recordNumber * recordSize() + cellSize, std::ios::beg);
     for (auto p: node)
         file << pad(p.first) << pad(p.second);
@@ -259,13 +259,15 @@ void BTree::markLeaf(int recordNumber, int leafStatus) {
     file << pad(leafStatus);
 }
 
-int BTree::update(int parentRecordNumber, int newChildRecordNumber) {
+int BTree::updateAfterInsert(int parentRecordNumber, int newChildRecordNumber) {
     std::vector<std::pair<int, int>> newParent;
     auto parent = node(parentRecordNumber);
     // For each value in parent
-    for (auto p: parent)
+    for (auto p: parent) {
+        auto childNode = node(p.second);
         // Add the maximum of the value's child
-        newParent.emplace_back(node(p.second).back().first, p.second);
+        newParent.emplace_back(childNode.back().first, p.second);
+    }
     // If there was a new child from previous split
     if (newChildRecordNumber != -1)
         //  Add the maximum of the new value's child
@@ -374,4 +376,192 @@ void BTree::markNonLeaf(int recordNumber) {
 
 int BTree::leafStatus(int recordNumber) {
     return cell(recordNumber, 0);
+}
+
+int BTree::search(int recordId) {
+    if (isEmpty(1)) return -1;
+
+    std::vector<std::pair<int, int>> current;
+
+    // Search for recordId in every node in the b-tree
+    // starting with the root
+    int i = 1;
+    bool found;
+    while (!isLeaf(i)) {
+        current = node(i);
+        found = false;
+        for (auto p: current) {
+            // If a greater value is found
+            if (p.first >= recordId) {
+                // B-Tree traversal
+                i = p.second;
+                found = true;
+                break;
+            }
+        }
+
+        // B-Tree traversal
+        if (!found) i = current.back().second;
+    }
+
+    current = node(i);
+    for (auto pair: current)
+        if (pair.first == recordId)
+            return pair.second;
+
+    return -1;
+}
+
+void BTree::remove(int recordId) {
+    // If the root is empty
+    if (isEmpty(1)) return;
+
+    std::vector<std::pair<int, int>> current;
+
+    // Keep track of visited records to updateAfterInsert them after insertion
+    std::stack<int> visited;
+
+    // Search for recordId in every node in the b-tree
+    // starting with the root
+    int currentRecordNumber = 1, parentRecordNumber = -1;
+    bool found;
+    while (!isLeaf(currentRecordNumber)) {
+        visited.push(currentRecordNumber);
+        current = node(currentRecordNumber);
+        found = false;
+        for (auto p: current) {
+            // If a greater value is found
+            if (p.first >= recordId) {
+                // B-Tree traversal
+                parentRecordNumber = currentRecordNumber;
+                currentRecordNumber = p.second;
+                found = true;
+                break;
+            }
+        }
+
+        // B-Tree traversal
+        if (!found) {
+            parentRecordNumber = currentRecordNumber;
+            currentRecordNumber = current.back().second;
+        }
+    }
+
+    current = node(currentRecordNumber);
+
+    // Delete first pair with first == recordId
+    for (auto pair = current.begin(); pair != current.end(); ++pair)
+        if (pair->first == recordId) {
+            current.erase(pair);
+            break;
+        }
+
+
+    if (current.size() < m / 2) {
+        if (!redistribute(parentRecordNumber, currentRecordNumber, current)) {
+            merge(parentRecordNumber, currentRecordNumber, current);
+        }
+    } else {
+        writeNode(current, currentRecordNumber);
+    }
+
+    // Otherwise, updateAfterInsert parents
+    while (!visited.empty()) {
+        int lastVisitedIndex = visited.top();
+        visited.pop();
+        if (!visited.empty())
+            updateAfterDelete(lastVisitedIndex, visited.top());
+        else
+            updateAfterDelete(lastVisitedIndex, -1);
+    }
+}
+
+void BTree::markEmpty(int recordNumber) {
+    file.seekg(recordNumber * recordSize(), std::ios::beg);
+    file << pad(-1);
+}
+
+bool
+BTree::redistribute(int parentRecordNumber, int currentRecordNumber, std::vector<std::pair<int, int>> currentNode) {
+    auto parent = node(parentRecordNumber);
+
+    // For each pair in parent node
+    for (int i = 0; i < parent.size() - 1; ++i) {
+        // If the pair after the current pair is pointing to the record where deletion happened
+        // i.e. If we reached the pair to left of the pair where the deletion happened
+        if (parent[i + 1].second == currentRecordNumber) {
+            int siblingRecordNumber = parent[i].second;
+            auto sibling = node(siblingRecordNumber);
+            // Check the size of the child node of this pair
+            // If it is going to be less than m/2 after redistribution, do nothing and return false
+            if (sibling.size() == m / 2) {
+                return false;
+            } else { // Otherwise, if we can redistribute
+                // Take one pair from sibling and put it in the node where deletion happened
+                currentNode.push_back(sibling.back());
+
+                // Remove the moved pair from the sibling node
+                sibling.pop_back();
+
+                // Sort the current node and write both nodes
+                std::sort(currentNode.begin(), currentNode.end());
+                clearRecord(currentRecordNumber);
+                writeNode(currentNode, currentRecordNumber);
+                clearRecord(siblingRecordNumber);
+                writeNode(sibling, siblingRecordNumber);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void BTree::updateAfterDelete(int parentRecordNumber, int grandParentRecordNumber) {
+    std::vector<std::pair<int, int>> newParent;
+
+    auto parent = node(parentRecordNumber);
+
+    // For each pair in parent
+    for (auto p: parent) {
+        auto childNode = node(p.second);
+        if (!childNode.empty())
+            // Add the maximum of the value's child
+            newParent.emplace_back(childNode.back().first, p.second);
+    }
+
+    std::sort(newParent.begin(), newParent.end());
+
+    // If record overflowed after insertion
+    if (newParent.size() < m / 2 && grandParentRecordNumber != -1) {
+//        newFromSplitIndex = split(parentRecordNumber, newParent);
+        if (!redistribute(grandParentRecordNumber, parentRecordNumber, newParent)) {
+            merge(grandParentRecordNumber, parentRecordNumber, newParent);
+        }
+    } else
+        // Write new parent
+        writeNode(newParent, parentRecordNumber);
+}
+
+void BTree::merge(int parentRecordNumber, int currentRecordNumber, std::vector<std::pair<int, int>> currentNode) {
+    auto parent = node(parentRecordNumber);
+
+    // For each pair in parent node
+    for (int i = 0; i < parent.size() - 1; ++i) {
+        // If the pair after the current pair is pointing to the record where deletion happened
+        // i.e. If we reached the pair to left of the pair where the deletion happened
+        if (parent[i + 1].second == currentRecordNumber) {
+            int siblingRecordNumber = parent[i].second;
+            auto sibling = node(siblingRecordNumber);
+            while (!currentNode.empty()) {
+                sibling.push_back(currentNode.back());
+                currentNode.pop_back();
+            }
+            std::sort(sibling.begin(), sibling.end());
+            writeNode(sibling, siblingRecordNumber);
+            clearRecord(currentRecordNumber);
+            markEmpty(currentRecordNumber);
+            writeCell(currentRecordNumber, 0, 1);
+            return;
+        }
+    }
 }
