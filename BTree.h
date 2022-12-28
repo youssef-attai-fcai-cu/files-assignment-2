@@ -114,7 +114,7 @@ private:
 
     void markLeaf(int recordNumber, int leafStatus);
 
-    int update(int parentRecordNumber, int newChildRecordNumber);
+    int updateAfterInsert(int parentRecordNumber, int newChildRecordNumber);
 
     void clearRecord(int recordNumber);
 
@@ -123,4 +123,9 @@ private:
     int leafStatus(int recordNumber);
 
     void markEmpty(int recordNumber);
+
+    bool
+    redistribute(int parentRecordNumber, int currentRecordNumber, std::vector<std::pair<int, int>> currentNode);
+
+    void updateAfterDelete(int parentRecordNumber, int grandParentRecordNumber);
 };

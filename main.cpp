@@ -1,7 +1,9 @@
 #include <iostream>
 #include "BTree.h"
 
-#define SEPARATOR std::cout << "-----------------------------------------------------\n";
+void separate();
+
+void log(const std::string &message, int value);
 
 void insertions(BTree &btree);
 
@@ -12,7 +14,7 @@ int main() {
 
     insertions(btree);
 
-    SEPARATOR
+    separate();
 
     deletions(btree);
 
@@ -20,17 +22,23 @@ int main() {
 }
 
 void deletions(BTree &btree) {
-    btree.remove(10);
+    int target;
+
+    target = 10;
+    log("Removed ", target);
+    btree.remove(target);
     btree.display();
-    SEPARATOR
-    
-    btree.remove(9);
+    separate();
+
+    target = 9;
+    log("Removed ", target);
+    btree.remove(target);
     btree.display();
 }
 
 void insertions(BTree &btree) {
 
-    SEPARATOR
+    separate();
 
     btree.insert(3, 12);
     btree.insert(7, 24);
@@ -40,13 +48,13 @@ void insertions(BTree &btree) {
 
     btree.display();
 
-    SEPARATOR
+    separate();
 
     btree.insert(19, 84);
 
     btree.display();
 
-    SEPARATOR
+    separate();
 
     btree.insert(30, 96);
     btree.insert(15, 108);
@@ -55,13 +63,13 @@ void insertions(BTree &btree) {
 
     btree.display();
 
-    SEPARATOR
+    separate();
 
     btree.insert(2, 144);
 
     btree.display();
 
-    SEPARATOR
+    separate();
 
     btree.insert(8, 156);
     btree.insert(9, 168);
@@ -73,9 +81,17 @@ void insertions(BTree &btree) {
 
     btree.display();
 
-    SEPARATOR
+    separate();
 
     btree.insert(32, 240);
 
     btree.display();
+}
+
+void log(const std::string &message, int value) {
+    std::cout << message << value << '\n';
+}
+
+void separate() {
+    std::cout << "-----------------------------------------------------\n";
 }
