@@ -423,18 +423,18 @@ void BTree::remove(int recordId) {
 
     // Search for recordId in every node in the b-tree
     // starting with the root
-    int i = 1, parent = -1;
+    int currentRecordNumber = 1, parentRecordNumber = -1;
     bool found;
-    while (!isLeaf(i)) {
-        visited.push(i);
-        current = node(i);
+    while (!isLeaf(currentRecordNumber)) {
+        visited.push(currentRecordNumber);
+        current = node(currentRecordNumber);
         found = false;
         for (auto p: current) {
             // If a greater value is found
             if (p.first >= recordId) {
                 // B-Tree traversal
-                parent = i;
-                i = p.second;
+                parentRecordNumber = currentRecordNumber;
+                currentRecordNumber = p.second;
                 found = true;
                 break;
             }
@@ -442,12 +442,12 @@ void BTree::remove(int recordId) {
 
         // B-Tree traversal
         if (!found) {
-            parent = i;
-            i = current.back().second;
+            parentRecordNumber = currentRecordNumber;
+            currentRecordNumber = current.back().second;
         }
     }
 
-    current = node(i);
+    current = node(currentRecordNumber);
 
     // Delete first pair with first == recordId
     for (auto pair = current.begin(); pair != current.end(); ++pair)
@@ -458,11 +458,11 @@ void BTree::remove(int recordId) {
 
 
     if (current.size() < m / 2) {
-        if (!redistribute(parent, i, current)) {
-//            merge(parent, i, current);
+        if (!redistribute(parentRecordNumber, currentRecordNumber, current)) {
+            merge(parentRecordNumber, currentRecordNumber, current);
         }
     } else {
-        writeNode(current, i);
+        writeNode(current, currentRecordNumber);
     }
 
     // Otherwise, updateAfterInsert parents
@@ -524,8 +524,9 @@ void BTree::updateAfterDelete(int parentRecordNumber, int grandParentRecordNumbe
     // For each pair in parent
     for (auto p: parent) {
         auto childNode = node(p.second);
-        // Add the maximum of the value's child
-        newParent.emplace_back(childNode.back().first, p.second);
+        if (!childNode.empty())
+            // Add the maximum of the value's child
+            newParent.emplace_back(childNode.back().first, p.second);
     }
 
     std::sort(newParent.begin(), newParent.end());
@@ -534,9 +535,33 @@ void BTree::updateAfterDelete(int parentRecordNumber, int grandParentRecordNumbe
     if (newParent.size() < m / 2 && grandParentRecordNumber != -1) {
 //        newFromSplitIndex = split(parentRecordNumber, newParent);
         if (!redistribute(grandParentRecordNumber, parentRecordNumber, newParent)) {
-
+            merge(grandParentRecordNumber, parentRecordNumber, newParent);
         }
     } else
         // Write new parent
         writeNode(newParent, parentRecordNumber);
+}
+
+void BTree::merge(int parentRecordNumber, int currentRecordNumber, std::vector<std::pair<int, int>> currentNode) {
+    auto parent = node(parentRecordNumber);
+
+    // For each pair in parent node
+    for (int i = 0; i < parent.size() - 1; ++i) {
+        // If the pair after the current pair is pointing to the record where deletion happened
+        // i.e. If we reached the pair to left of the pair where the deletion happened
+        if (parent[i + 1].second == currentRecordNumber) {
+            int siblingRecordNumber = parent[i].second;
+            auto sibling = node(siblingRecordNumber);
+            while (!currentNode.empty()) {
+                sibling.push_back(currentNode.back());
+                currentNode.pop_back();
+            }
+            std::sort(sibling.begin(), sibling.end());
+            writeNode(sibling, siblingRecordNumber);
+            clearRecord(currentRecordNumber);
+            markEmpty(currentRecordNumber);
+            writeCell(currentRecordNumber, 0, 1);
+            return;
+        }
+    }
 }

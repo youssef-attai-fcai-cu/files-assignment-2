@@ -127,5 +127,8 @@ private:
     bool
     redistribute(int parentRecordNumber, int currentRecordNumber, std::vector<std::pair<int, int>> currentNode);
 
+    void
+    merge(int parentRecordNumber, int currentRecordNumber, std::vector<std::pair<int, int>> currentNode);
+
     void updateAfterDelete(int parentRecordNumber, int grandParentRecordNumber);
 };

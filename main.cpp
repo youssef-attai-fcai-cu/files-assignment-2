@@ -34,6 +34,11 @@ void deletions(BTree &btree) {
     log("Removed ", target);
     btree.remove(target);
     btree.display();
+
+    target = 8;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
 }
 
 void insertions(BTree &btree) {
