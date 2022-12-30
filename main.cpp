@@ -39,6 +39,83 @@ void deletions(BTree &btree) {
     log("Removed ", target);
     btree.remove(target);
     btree.display();
+
+    target = 1;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 2;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 3;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 5;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 6;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 7;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 15;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 19;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 32;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 14;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 18;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 30;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+    
+    target = 24;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+    
+    target = 11;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+    target = 12;
+    log("Removed ", target);
+    btree.remove(target);
+    btree.display();
+
+
 }
 
 void insertions(BTree &btree) {

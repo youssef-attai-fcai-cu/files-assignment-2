@@ -485,6 +485,10 @@ bool
 BTree::redistribute(int parentRecordNumber, int currentRecordNumber, std::vector<std::pair<int, int>> currentNode) {
     auto parent = node(parentRecordNumber);
 
+    if (parent[0].second == currentRecordNumber) {
+        return false;
+    }
+
     // For each pair in parent node
     for (int i = 0; i < parent.size() - 1; ++i) {
         // If the pair after the current pair is pointing to the record where deletion happened
@@ -545,6 +549,42 @@ void BTree::updateAfterDelete(int parentRecordNumber, int grandParentRecordNumbe
 void BTree::merge(int parentRecordNumber, int currentRecordNumber, std::vector<std::pair<int, int>> currentNode) {
     auto parent = node(parentRecordNumber);
 
+    if (parent[0].second == currentRecordNumber) {
+        if (parent.size() > 1) {
+            int siblingRecordNumber = parent[1].second;
+            auto sibling = node(siblingRecordNumber);
+            while (!currentNode.empty()) {
+                sibling.push_back(currentNode.back());
+                currentNode.pop_back();
+            }
+            std::sort(sibling.begin(), sibling.end());
+            writeNode(sibling, siblingRecordNumber);
+            clearRecord(currentRecordNumber);
+            markEmpty(currentRecordNumber);
+            int empty = nextEmpty();
+            writeCell(currentRecordNumber, 0, 1);
+            writeCell(empty, currentRecordNumber, 1);
+        } else {
+/*
+            int extraRecordNumber = parent[0].second;
+            parent[0].second = currentNode[0].second;
+            writeNode(parent, parentRecordNumber);
+            clearRecord(extraRecordNumber);
+            markEmpty(extraRecordNumber);
+            int empty = nextEmpty();
+            writeCell(extraRecordNumber, 0, 1);
+            writeCell(empty, extraRecordNumber, 1);
+
+          1 [<24,9>,-1,-1,-1,-1]
+             /
+            9 [<24,7>,-1,-1,-1,-1]
+                /
+               7 [12,17,24,-1,-1]
+*/
+        }
+        return;
+    }
+
     // For each pair in parent node
     for (int i = 0; i < parent.size() - 1; ++i) {
         // If the pair after the current pair is pointing to the record where deletion happened
@@ -560,7 +600,9 @@ void BTree::merge(int parentRecordNumber, int currentRecordNumber, std::vector<s
             writeNode(sibling, siblingRecordNumber);
             clearRecord(currentRecordNumber);
             markEmpty(currentRecordNumber);
+            int empty = nextEmpty();
             writeCell(currentRecordNumber, 0, 1);
+            writeCell(empty, currentRecordNumber, 1);
             return;
         }
     }
