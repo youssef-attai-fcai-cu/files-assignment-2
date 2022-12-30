@@ -99,23 +99,6 @@ void deletions(BTree &btree) {
     log("Removed ", target);
     btree.remove(target);
     btree.display();
-    
-    target = 24;
-    log("Removed ", target);
-    btree.remove(target);
-    btree.display();
-    
-    target = 11;
-    log("Removed ", target);
-    btree.remove(target);
-    btree.display();
-
-    target = 12;
-    log("Removed ", target);
-    btree.remove(target);
-    btree.display();
-
-
 }
 
 void insertions(BTree &btree) {
